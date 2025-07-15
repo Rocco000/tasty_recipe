@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:tasty_recipe/Models/Ingredient.dart';
+import 'package:tasty_recipe/Models/RecipeIngredient.dart';
+import 'package:tasty_recipe/Screens/AddRecipeStepsScreen.dart';
 import 'package:tasty_recipe/Widgets/IngredientFormField.dart';
 import 'package:tasty_recipe/Widgets/DottedButtonWidget.dart';
 
 class AddRecipeIngredientsScreen extends StatefulWidget {
-  static const routeName = "/addRecipeIngredients";
+  static const route = "/addRecipeIngredients";
 
   const AddRecipeIngredientsScreen({super.key});
 
@@ -33,25 +35,31 @@ class _AddRecipeIngredientsState extends State<AddRecipeIngredientsScreen> {
 
   Widget _generateIngredientField(int index, int id) {
     return (index == 0)
-      ? IngredientFormField(ingredientNumber: index, ingredientList: _allIngredients,)
-      : Dismissible(
-        key: ValueKey<int>(id),
-        background: DecoratedBox(
-          decoration: BoxDecoration(color: Colors.red),
-          child: Align(
-            alignment: Alignment(-0.9, 00),
-            child: Icon(Icons.delete, color: Colors.white),
-          ),
-        ),
-        direction: DismissDirection.startToEnd,
-        onDismissed: (direction) {
-          setState(() {
-            _numIngredients -= 1;
-            _ingredientIds.remove(id);
-          });
-        },
-        child: IngredientFormField(ingredientNumber: index, ingredientList: _allIngredients,),
-      );
+        ? IngredientFormField(
+            ingredientNumber: index,
+            ingredientList: _allIngredients,
+          )
+        : Dismissible(
+            key: ValueKey<int>(id),
+            background: DecoratedBox(
+              decoration: BoxDecoration(color: Colors.red),
+              child: Align(
+                alignment: Alignment(-0.9, 00),
+                child: Icon(Icons.delete, color: Colors.white),
+              ),
+            ),
+            direction: DismissDirection.startToEnd,
+            onDismissed: (direction) {
+              setState(() {
+                _numIngredients -= 1;
+                _ingredientIds.remove(id);
+              });
+            },
+            child: IngredientFormField(
+              ingredientNumber: index,
+              ingredientList: _allIngredients,
+            ),
+          );
   }
 
   @override
@@ -96,7 +104,10 @@ class _AddRecipeIngredientsState extends State<AddRecipeIngredientsScreen> {
                   // DISMISSABLE FORM FIELD
                   return Padding(
                     padding: const EdgeInsets.all(10.0),
-                    child: _generateIngredientField(index, _ingredientIds[index]),
+                    child: _generateIngredientField(
+                      index,
+                      _ingredientIds[index],
+                    ),
                   );
                 }),
 
@@ -107,7 +118,9 @@ class _AddRecipeIngredientsState extends State<AddRecipeIngredientsScreen> {
                     onTap: () {
                       setState(() {
                         _numIngredients += 1;
-                        _ingredientIds.add(DateTime.now().millisecondsSinceEpoch);
+                        _ingredientIds.add(
+                          DateTime.now().millisecondsSinceEpoch,
+                        );
                       });
                     },
                     child: Column(
@@ -132,16 +145,32 @@ class _AddRecipeIngredientsState extends State<AddRecipeIngredientsScreen> {
                     onPressed: () {
                       if (_formKey.currentState!.saveAndValidate()) {
                         final formFields = _formKey.currentState!.value;
-                  
+
+                        List<RecipeIngredient> recipeIngredients = [];
+
                         for (int i = 0; i < _numIngredients; i++) {
                           var app = {
                             "name": formFields["ingredient_$i"],
                             "unit": formFields["ingredientUnit_$i"],
                             "quantity": formFields["ingredientQuantity_$i"],
                           };
-                  
+
                           print(app);
+                          recipeIngredients.add(
+                            RecipeIngredient(
+                              0,
+                              0,
+                              formFields["ingredientQuantity_$i"],
+                              formFields["ingredientUnit_$i"],
+                            ),
+                          );
                         }
+
+                        Navigator.pushNamed(
+                          context,
+                          AddRecipeStepsScreen.route,
+                          arguments: recipeIngredients,
+                        );
                       }
                     },
                     style: ElevatedButton.styleFrom(

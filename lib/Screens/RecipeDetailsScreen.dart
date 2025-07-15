@@ -7,7 +7,7 @@ import 'package:tasty_recipe/Widgets/RecipeIngredientWidget.dart';
 import 'package:tasty_recipe/Widgets/RecipeStepWidget.dart';
 
 class RecipeDetailsScreen extends StatefulWidget {
-  final String route = "recipeDetails";
+  static const String route = "recipeDetails";
 
   const RecipeDetailsScreen({super.key});
 
@@ -18,7 +18,7 @@ class RecipeDetailsScreen extends StatefulWidget {
 class _RecipeDetailsScreenState extends State<RecipeDetailsScreen> {
   final Recipe _recipe = Recipe(
     null,
-    1,
+    "1",
     "Chocolate cake",
     2,
     60,
@@ -26,6 +26,7 @@ class _RecipeDetailsScreenState extends State<RecipeDetailsScreen> {
     "Dessert",
     ["Lactose Free", "Vegan"],
     false,
+    "",
   );
 
   final List<RecipeStep> _recipeSteps = [
@@ -43,13 +44,7 @@ class _RecipeDetailsScreenState extends State<RecipeDetailsScreen> {
       null,
       null,
     ),
-    RecipeStep(
-      2,
-      2,
-      "bacdfgrgt vfrgtrsghbt gvfrfagvfrae gvergh",
-      1,
-      "hour",
-    ),
+    RecipeStep(2, 2, "bacdfgrgt vfrgtrsghbt gvfrfagvfrae gvergh", 1, "hour"),
   ];
 
   final List<RecipeIngredient> _recipeIngredients = [
@@ -64,7 +59,10 @@ class _RecipeDetailsScreenState extends State<RecipeDetailsScreen> {
     Ingredient(0, "Cacao"),
   ];
 
-  Widget _generateIngredients(RecipeIngredient ingredient, String ingredientName) {
+  Widget _generateIngredients(
+    RecipeIngredient ingredient,
+    String ingredientName,
+  ) {
     return RecipeIngredientWidget(
       ingredient: ingredient,
       ingredientName: ingredientName,
@@ -74,8 +72,7 @@ class _RecipeDetailsScreenState extends State<RecipeDetailsScreen> {
             content: const Text("Added to cart!"),
             backgroundColor: Colors.black45,
             duration: const Duration(seconds: 2),
-            behavior:
-                SnackBarBehavior.floating, // Makes it float over the UI
+            behavior: SnackBarBehavior.floating, // Makes it float over the UI
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),
@@ -95,7 +92,7 @@ class _RecipeDetailsScreenState extends State<RecipeDetailsScreen> {
     );
   }
 
-  Widget _generateSection(String sectionTitle, void Function() onPressed){
+  Widget _generateSection(String sectionTitle, void Function() onPressed) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 18.0),
       child: Row(
@@ -108,8 +105,8 @@ class _RecipeDetailsScreenState extends State<RecipeDetailsScreen> {
           IconButton(
             onPressed: onPressed,
             tooltip: "Edit",
-            icon: const Icon(Icons.edit_rounded)
-          )
+            icon: const Icon(Icons.edit_rounded),
+          ),
         ],
       ),
     );
@@ -188,7 +185,9 @@ class _RecipeDetailsScreenState extends State<RecipeDetailsScreen> {
                           color: (_recipe.isFavorite)
                               ? Colors.red
                               : Colors.black,
-                          tooltip: (_recipe.isFavorite) ? "Remove from favorite" : "Add to favorite!",
+                          tooltip: (_recipe.isFavorite)
+                              ? "Remove from favorite"
+                              : "Add to favorite!",
                           onPressed: () {
                             setState(() {
                               _recipe.changeFavoriteState();
@@ -217,7 +216,7 @@ class _RecipeDetailsScreenState extends State<RecipeDetailsScreen> {
                 ),
               ),
 
-              _generateSection("General Info:", (){}),
+              _generateSection("General Info:", () {}),
 
               // DURATION
               Card(
@@ -350,14 +349,17 @@ class _RecipeDetailsScreenState extends State<RecipeDetailsScreen> {
               ),
 
               // INGREDIENTS
-              _generateSection("Ingredients:", (){}),
-          
+              _generateSection("Ingredients:", () {}),
+
               ...List.generate(_recipeIngredients.length, (index) {
-                return _generateIngredients(_recipeIngredients[index], _ingredients[index].name);
+                return _generateIngredients(
+                  _recipeIngredients[index],
+                  _ingredients[index].name,
+                );
               }),
 
               // STEPS
-              _generateSection("Steps:", (){}),
+              _generateSection("Steps:", () {}),
 
               ...List.generate(_recipeSteps.length, (index) {
                 return _generateRecipeStepCard(index);

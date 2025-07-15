@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:tasty_recipe/Models/CartItem.dart';
 import 'package:tasty_recipe/Models/Ingredient.dart';
+import 'package:tasty_recipe/Widgets/MyBottomNavigationBar.dart';
 
 class CartScreen extends StatefulWidget {
-  final String route = "/cartScreen";
+  static const String route = "/cartScreen";
 
   const CartScreen({super.key});
 
@@ -26,8 +27,7 @@ class _CartScreenState extends State<CartScreen> {
 
   List<CartItem> _checkedItems = [];
 
-
-  Widget _generateUncheckedItem(int index){
+  Widget _generateUncheckedItem(int index) {
     // Get the corresponding ingredient name
     final String ingredientName = _ingredients[index].name;
     final CartItem cartItem = _uncheckedItems[index];
@@ -45,61 +45,77 @@ class _CartScreenState extends State<CartScreen> {
       onDismissed: (direction) {
         setState(() {
           print(_uncheckedItems[index]);
-          _uncheckedItems.removeAt(index); // removeWhere((item) => item.ingredientId == cartItem.ingredientId)
+          _uncheckedItems.removeAt(
+            index,
+          ); // removeWhere((item) => item.ingredientId == cartItem.ingredientId)
           print(_uncheckedItems.length);
         });
       },
       child: CheckboxListTile(
         value: cartItem.isChecked,
-        onChanged: (newValue){
+        onChanged: (newValue) {
           setState(() {
             // Set the checked state to checked
             cartItem.checkStatus = !cartItem.isChecked;
             // Add the item in the checked list
             _checkedItems.add(cartItem);
             // Remove the item from the unchecked list
-            _uncheckedItems.removeAt(index); // removeWhere((item) => item.ingredientId == cartItem.ingredientId)
+            _uncheckedItems.removeAt(
+              index,
+            ); // removeWhere((item) => item.ingredientId == cartItem.ingredientId)
           });
         },
-        title: Text(ingredientName, style: const TextStyle(fontSize: 18))
-      )
+        title: Text(ingredientName, style: const TextStyle(fontSize: 18)),
+      ),
     );
   }
 
-  Widget _generateCheckedItem(int index){
+  Widget _generateCheckedItem(int index) {
     // Get the corresponding ingredient name
     String ingredientName = _ingredients[index].name;
 
     return CheckboxListTile(
       value: _checkedItems[index].isChecked,
-      onChanged: (newValue){
+      onChanged: (newValue) {
         setState(() {
           // Set the checked state to uncheck
           _checkedItems[index].checkStatus = !_checkedItems[index].isChecked;
-          
+
           // Add the item in the unchecked list
           _uncheckedItems.add(_checkedItems[index]);
-          
+
           // Remove the item from the checked list
           _checkedItems.removeAt(index);
         });
       },
-      title: Text(ingredientName, style: const TextStyle(fontSize: 18, decoration: TextDecoration.lineThrough, decorationThickness: 2.0,))
+      title: Text(
+        ingredientName,
+        style: const TextStyle(
+          fontSize: 18,
+          decoration: TextDecoration.lineThrough,
+          decorationThickness: 2.0,
+        ),
+      ),
     );
   }
 
-  List<Widget> _generateCompletedScreen(){
+  List<Widget> _generateCompletedScreen() {
     return [
       // TEXT + CLEAR ALL BUTTON
       SliverToBoxAdapter(
         child: Container(
-          decoration: BoxDecoration(
-            color: Colors.black38
-          ),
+          decoration: BoxDecoration(color: Colors.black38),
           child: ListTile(
-            title: const Text("Completed", style: TextStyle(color: Colors.white,fontSize: 22, fontWeight: FontWeight.bold),),
+            title: const Text(
+              "Completed",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             trailing: IconButton(
-              onPressed: (){
+              onPressed: () {
                 setState(() {
                   _checkedItems.clear();
                 });
@@ -114,17 +130,15 @@ class _CartScreenState extends State<CartScreen> {
       // CHECKED ITEMS
       SliverList(
         delegate: SliverChildBuilderDelegate(
-          (context, index) =>  _generateCheckedItem(index),
+          (context, index) => _generateCheckedItem(index),
           childCount: _checkedItems.length,
-        )
+        ),
       ),
     ];
-  }  
+  }
 
   @override
   Widget build(BuildContext context) {
-    
-
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
@@ -139,21 +153,24 @@ class _CartScreenState extends State<CartScreen> {
               child: Container(
                 padding: const EdgeInsets.all(16.0),
                 alignment: Alignment.center,
-                child: Text('Shopping List', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                child: Text(
+                  'Shopping List',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
             SliverList(
               delegate: SliverChildBuilderDelegate(
-                (context, index) =>  _generateUncheckedItem(index),
+                (context, index) => _generateUncheckedItem(index),
                 childCount: _uncheckedItems.length,
-              )
+              ),
             ),
 
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: ElevatedButton(
-                  onPressed: (){},
+                  onPressed: () {},
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blueAccent,
                     foregroundColor: Colors.white,
@@ -163,26 +180,29 @@ class _CartScreenState extends State<CartScreen> {
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  child: const Text("Add item", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),)
+                  child: const Text(
+                    "Add item",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ),
 
             // CHECKED
-            if (_checkedItems.isNotEmpty)
-              ..._generateCompletedScreen(),
-
+            if (_checkedItems.isNotEmpty) ..._generateCompletedScreen(),
           ],
         ),
 
         floatingActionButton: FloatingActionButton(
-          onPressed: (){},
+          onPressed: () {},
           tooltip: "Add item",
           backgroundColor: Colors.orange,
           foregroundColor: Colors.white,
           child: const Icon(Icons.add),
         ),
-      )
+
+        bottomNavigationBar: MyBottomNavigationBar(1),
+      ),
     );
   }
 }

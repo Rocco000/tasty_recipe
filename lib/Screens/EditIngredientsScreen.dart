@@ -6,7 +6,7 @@ import 'package:tasty_recipe/Widgets/DottedButtonWidget.dart';
 import 'package:tasty_recipe/Widgets/IngredientFormField.dart';
 
 class EditIngredientsScreen extends StatefulWidget {
-  final String route = "/editRecipeIngredients";
+  static const String route = "/editRecipeIngredients";
 
   const EditIngredientsScreen({super.key});
 
@@ -41,7 +41,7 @@ class _EditIngredientsScreenState extends State<EditIngredientsScreen> {
   List<int> _idList = [];
 
   @override
-  void initState(){
+  void initState() {
     super.initState();
     _numIngredients = _recipeIngredients.length;
     _idList = List.generate(_recipeIngredients.length, (index) => index);
@@ -49,44 +49,59 @@ class _EditIngredientsScreenState extends State<EditIngredientsScreen> {
 
   Widget _generateIngredientField(int index) {
     return Dismissible(
-        key: ValueKey<int>(_idList[index]),
-        background: const DecoratedBox(
-          decoration: BoxDecoration(color: Colors.red),
-          child: Align(
-            alignment: Alignment(-0.9, 00),
-            child: Icon(Icons.delete, color: Colors.white),
-          ),
+      key: ValueKey<int>(_idList[index]),
+      background: const DecoratedBox(
+        decoration: BoxDecoration(color: Colors.red),
+        child: Align(
+          alignment: Alignment(-0.9, 00),
+          child: Icon(Icons.delete, color: Colors.white),
         ),
-        direction: DismissDirection.startToEnd,
-        onDismissed: (direction) {
-          setState(() {
-            _numIngredients -= 1;
-            if (index <= _recipeIngredients.length - 1){
-              // Remove ingredient from recipe ingredient list
-              _recipeIngredients.removeAt(index);
-              _ingredientNames.removeAt(index);
-            }
+      ),
+      direction: DismissDirection.startToEnd,
+      onDismissed: (direction) {
+        setState(() {
+          _numIngredients -= 1;
+          if (index <= _recipeIngredients.length - 1) {
+            // Remove ingredient from recipe ingredient list
+            _recipeIngredients.removeAt(index);
+            _ingredientNames.removeAt(index);
+          }
 
-            // Remove its corresponding ID
-            _idList.removeAt(index);
-          });
+          // Remove its corresponding ID
+          _idList.removeAt(index);
+        });
 
-          // Clear the form state
-          _formKey.currentState!.removeInternalFieldValue("ingredientUnit$index");
-          _formKey.currentState!.removeInternalFieldValue("ingredientQuantity$index");
-        },
-        child: (index <= _recipeIngredients.length-1) ?
-          IngredientFormField(ingredientNumber: index, ingredientList: _allIngredients, ingredientName: _ingredientNames[index].name,  recipeIngredient: _recipeIngredients[index])
-          :
-          IngredientFormField(ingredientNumber: index, ingredientList: _allIngredients, ingredientName: null, recipeIngredient: null,)
-      );
+        // Clear the form state
+        _formKey.currentState!.removeInternalFieldValue("ingredientUnit$index");
+        _formKey.currentState!.removeInternalFieldValue(
+          "ingredientQuantity$index",
+        );
+      },
+      child: (index <= _recipeIngredients.length - 1)
+          ? IngredientFormField(
+              ingredientNumber: index,
+              ingredientList: _allIngredients,
+              ingredientName: _ingredientNames[index].name,
+              recipeIngredient: _recipeIngredients[index],
+            )
+          : IngredientFormField(
+              ingredientNumber: index,
+              ingredientList: _allIngredients,
+              ingredientName: null,
+              recipeIngredient: null,
+            ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        appBar: AppBar(backgroundColor: Colors.orange, foregroundColor: Colors.white, title: const Text("Tasty Recipe"),),
+        appBar: AppBar(
+          backgroundColor: Colors.orange,
+          foregroundColor: Colors.white,
+          title: const Text("Tasty Recipe"),
+        ),
         body: Padding(
           padding: const EdgeInsets.all(8.0),
           child: ListView(
@@ -94,17 +109,20 @@ class _EditIngredientsScreenState extends State<EditIngredientsScreen> {
               Container(
                 alignment: Alignment.center,
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: const Text("Edit ingredients", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18,),)
+                child: const Text(
+                  "Edit ingredients",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
               ),
-          
+
               FormBuilder(
                 key: _formKey,
                 child: Column(
                   children: List.generate(
                     _numIngredients,
-                    (index) => _generateIngredientField(index)
+                    (index) => _generateIngredientField(index),
                   ),
-                )
+                ),
               ),
 
               Padding(
@@ -138,14 +156,14 @@ class _EditIngredientsScreenState extends State<EditIngredientsScreen> {
                     onPressed: () {
                       if (_formKey.currentState!.saveAndValidate()) {
                         final formFields = _formKey.currentState!.value;
-                  
+
                         for (int i = 0; i < _numIngredients; i++) {
                           var app = {
                             "name": formFields["ingredient_$i"],
                             "unit": formFields["ingredientUnit_$i"],
                             "quantity": formFields["ingredientQuantity_$i"],
                           };
-                  
+
                           print(app);
                         }
                       }
@@ -162,11 +180,10 @@ class _EditIngredientsScreenState extends State<EditIngredientsScreen> {
                     child: const Text("Save"),
                   ),
                 ),
-          
             ],
           ),
         ),
-      )
+      ),
     );
   }
 }

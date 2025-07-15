@@ -5,7 +5,7 @@ import 'package:tasty_recipe/Widgets/DottedButtonWidget.dart';
 import 'package:tasty_recipe/Widgets/RecipeStepFormField.dart';
 
 class EditRecipeStepsScreen extends StatefulWidget {
-  final String route = "/editRecipeSteps";
+  static const String route = "/editRecipeSteps";
 
   const EditRecipeStepsScreen({super.key});
 
@@ -17,60 +17,95 @@ class _EditRecipeStepsScreenState extends State<EditRecipeStepsScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
 
   final List<RecipeStep> _recipeSteps = [
-    RecipeStep(0, 0, "ncvsdbvujfbsovabf vsdjnviobfdis v vsfojnbgvrsfjn", null, null),
-    RecipeStep(0, 1, "ncvsdbvujfbsovabf vsdjnviobfdis v vsfojnbgvrsfjn rgvedrtsgv tg rtedsg esrtd bers dg", 20, "minute"),
-    RecipeStep(0, 2, "ncvsdbvujfbsovabf vsdjnviobfdis v vsfojnbgvrsfjn rfg vdfg bd gvrde ", 1, "hour"),
-    RecipeStep(0, 3, "ncvsdbvujfbsovabf vsdjnviobfdis v vsfojnbgvrsfjn rfg vdfg bd gvrde ", null, null),
+    RecipeStep(
+      0,
+      0,
+      "ncvsdbvujfbsovabf vsdjnviobfdis v vsfojnbgvrsfjn",
+      null,
+      null,
+    ),
+    RecipeStep(
+      0,
+      1,
+      "ncvsdbvujfbsovabf vsdjnviobfdis v vsfojnbgvrsfjn rgvedrtsgv tg rtedsg esrtd bers dg",
+      20,
+      "minute",
+    ),
+    RecipeStep(
+      0,
+      2,
+      "ncvsdbvujfbsovabf vsdjnviobfdis v vsfojnbgvrsfjn rfg vdfg bd gvrde ",
+      1,
+      "hour",
+    ),
+    RecipeStep(
+      0,
+      3,
+      "ncvsdbvujfbsovabf vsdjnviobfdis v vsfojnbgvrsfjn rfg vdfg bd gvrde ",
+      null,
+      null,
+    ),
   ];
 
   int _numStepFields = 1;
   List<int> _stepIds = [];
 
   @override
-  void initState(){
+  void initState() {
     super.initState();
     _numStepFields = _recipeSteps.length;
     _stepIds = List.generate(_recipeSteps.length, (index) => index);
   }
 
-  Widget _generateStepField(int index){
-    return (index == 0) 
-    ? RecipeStepFormField(stepOrder: index, recipeStep: _recipeSteps[index],) 
-    : Dismissible(
-      key: ValueKey<int>(_stepIds[index]),
-      background: const DecoratedBox(
-        decoration: BoxDecoration(color: Colors.red,),
-        child: Align(
-          alignment: Alignment(-0.9, 0),
-          child: Icon(Icons.delete, color: Colors.white,)
-        ),
-      ),
-      direction: DismissDirection.startToEnd,
-      onDismissed: (direction) {
-        setState(() {
-          _numStepFields -= 1;
-          if (index <= _recipeSteps.length-1){
-            // Remove the step from recipe step list
-            _recipeSteps.removeAt(index);
-          }
+  Widget _generateStepField(int index) {
+    return (index == 0)
+        ? RecipeStepFormField(stepOrder: index, recipeStep: _recipeSteps[index])
+        : Dismissible(
+            key: ValueKey<int>(_stepIds[index]),
+            background: const DecoratedBox(
+              decoration: BoxDecoration(color: Colors.red),
+              child: Align(
+                alignment: Alignment(-0.9, 0),
+                child: Icon(Icons.delete, color: Colors.white),
+              ),
+            ),
+            direction: DismissDirection.startToEnd,
+            onDismissed: (direction) {
+              setState(() {
+                _numStepFields -= 1;
+                if (index <= _recipeSteps.length - 1) {
+                  // Remove the step from recipe step list
+                  _recipeSteps.removeAt(index);
+                }
 
-          // Remove its corresponding id
-          _stepIds.removeAt(index);
-        });
+                // Remove its corresponding id
+                _stepIds.removeAt(index);
+              });
 
-        _formKey.currentState!.removeInternalFieldValue("step$index");
-        _formKey.currentState!.removeInternalFieldValue("stepTimer$index");
-        _formKey.currentState!.removeInternalFieldValue("timeUnit$index");
-      },
-      child: RecipeStepFormField(stepOrder: index, recipeStep: (index <= _recipeSteps.length-1) ? _recipeSteps[index] : null,)
-    );
+              _formKey.currentState!.removeInternalFieldValue("step$index");
+              _formKey.currentState!.removeInternalFieldValue(
+                "stepTimer$index",
+              );
+              _formKey.currentState!.removeInternalFieldValue("timeUnit$index");
+            },
+            child: RecipeStepFormField(
+              stepOrder: index,
+              recipeStep: (index <= _recipeSteps.length - 1)
+                  ? _recipeSteps[index]
+                  : null,
+            ),
+          );
   }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        appBar: AppBar(backgroundColor: Colors.orange, foregroundColor: Colors.white, title: const Text("Tasty Recipe"),),
+        appBar: AppBar(
+          backgroundColor: Colors.orange,
+          foregroundColor: Colors.white,
+          title: const Text("Tasty Recipe"),
+        ),
         body: Padding(
           padding: const EdgeInsets.all(8.0),
           child: ListView(
@@ -78,14 +113,17 @@ class _EditRecipeStepsScreenState extends State<EditRecipeStepsScreen> {
               Container(
                 alignment: Alignment.center,
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: const Text("Edit steps", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18,),)
+                child: const Text(
+                  "Edit steps",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
               ),
 
               FormBuilder(
                 key: _formKey,
                 child: Column(
                   children: List.generate(_numStepFields, _generateStepField),
-                )
+                ),
               ),
 
               Padding(
@@ -119,14 +157,14 @@ class _EditRecipeStepsScreenState extends State<EditRecipeStepsScreen> {
                     onPressed: () {
                       if (_formKey.currentState!.saveAndValidate()) {
                         final formFields = _formKey.currentState!.value;
-                  
+
                         for (int i = 0; i < _numStepFields; i++) {
                           var app = {
                             "name": formFields["step$i"],
                             "timer": formFields["stepTimer$i"],
                             "timerUnit": formFields["timeUnit$i"],
                           };
-                  
+
                           print(app);
                         }
                       }
@@ -146,7 +184,7 @@ class _EditRecipeStepsScreenState extends State<EditRecipeStepsScreen> {
             ],
           ),
         ),
-      )
+      ),
     );
   }
 }

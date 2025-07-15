@@ -7,7 +7,7 @@ import 'package:tasty_recipe/Models/Recipe.dart';
 import 'package:tasty_recipe/Widgets/RecipeGeneralInfoForm.dart';
 
 class EditRecipeScreen extends StatefulWidget {
-  final String route = "/editRecipe";
+  static const String route = "/editRecipe";
 
   const EditRecipeScreen({super.key});
 
@@ -22,7 +22,7 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
 
   Recipe _existingRecipe = Recipe(
     File("A55 di Rocco/Internal storage/DCIM/Camera/20240727_114539.jpg"),
-    0,
+    "0",
     "Cake",
     3,
     30,
@@ -30,6 +30,7 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
     "First Course",
     ["Vegan"],
     false,
+    "",
   );
 
   Future _pickImageFromGallery() async {

@@ -3,7 +3,7 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 
 class SignInScreen extends StatefulWidget {
-  final String route = "/signin";
+  static const String route = "/signin";
   const SignInScreen({super.key});
 
   @override
@@ -97,7 +97,9 @@ class _SignInScreenState extends State<SignInScreen> {
                                   _pwdVisibility = !_pwdVisibility;
                                 });
                               },
-                              icon: (_pwdVisibility) ? const Icon(Icons.visibility) : const Icon(Icons.visibility_off),
+                              icon: (_pwdVisibility)
+                                  ? const Icon(Icons.visibility)
+                                  : const Icon(Icons.visibility_off),
                             ),
                           ),
                           obscureText: !_pwdVisibility,
@@ -126,12 +128,14 @@ class _SignInScreenState extends State<SignInScreen> {
                             labelText: "Repeat password",
                             icon: const Icon(Icons.lock_outline),
                             suffixIcon: IconButton(
-                              onPressed: (){
+                              onPressed: () {
                                 setState(() {
                                   _repeatVisibility = !_repeatVisibility;
                                 });
                               },
-                              icon: (_repeatVisibility) ? const Icon(Icons.visibility) : const Icon(Icons.visibility_off)
+                              icon: (_repeatVisibility)
+                                  ? const Icon(Icons.visibility)
+                                  : const Icon(Icons.visibility_off),
                             ),
                           ),
                           obscureText: !_repeatVisibility,
@@ -172,7 +176,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             Expanded(child: Divider(thickness: 2.0)),
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 8.0),
-                              child: Text("or", style: TextStyle(fontSize: 16),),
+                              child: Text("or", style: TextStyle(fontSize: 16)),
                             ),
                             Expanded(child: Divider(thickness: 2.0)),
                           ],
@@ -184,7 +188,9 @@ class _SignInScreenState extends State<SignInScreen> {
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.all(Radius.circular(8)),
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(8),
+                              ),
                             ),
                           ),
                           onPressed: () {},
@@ -196,12 +202,17 @@ class _SignInScreenState extends State<SignInScreen> {
                         spacing: 10,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: <Widget>[
-                          const Text("Already have an account?", style: TextStyle(fontSize: 14),),
+                          const Text(
+                            "Already have an account?",
+                            style: TextStyle(fontSize: 14),
+                          ),
 
-                          TextButton(onPressed: (){}, child: const Text("Log in"))
+                          TextButton(
+                            onPressed: () {},
+                            child: const Text("Log in"),
+                          ),
                         ],
                       ),
-
                     ],
                   ),
                 ),

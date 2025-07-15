@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
+import 'package:tasty_recipe/Models/RecipeStep.dart';
+import 'package:tasty_recipe/Screens/HomeScreen.dart';
 import 'package:tasty_recipe/Widgets/DottedButtonWidget.dart';
 import 'package:tasty_recipe/Widgets/RecipeStepFormField.dart';
 
 class AddRecipeStepsScreen extends StatefulWidget {
-  static const routeName = "/insertRecipeStep";
+  static const route = "/insertRecipeStep";
 
   const AddRecipeStepsScreen({super.key});
 
@@ -22,23 +24,23 @@ class _AddRecipeStepsScreenState extends State<AddRecipeStepsScreen> {
     return (index == 0)
         ? RecipeStepFormField(stepOrder: index)
         : Dismissible(
-          key: ValueKey<int>(id),
-          background: DecoratedBox(
-            decoration: BoxDecoration(color: Colors.red),
-            child: Align(
-              alignment: Alignment(-0.9, 00),
-              child: Icon(Icons.delete, color: Colors.white),
+            key: ValueKey<int>(id),
+            background: DecoratedBox(
+              decoration: BoxDecoration(color: Colors.red),
+              child: Align(
+                alignment: Alignment(-0.9, 00),
+                child: Icon(Icons.delete, color: Colors.white),
+              ),
             ),
-          ),
-          direction: DismissDirection.startToEnd,
-          onDismissed: (direction) {
-            setState(() {
-              _numStepFields -= 1;
-              _stepIds.remove(id);
-            });
-          },
-          child: RecipeStepFormField(stepOrder: index),
-        );
+            direction: DismissDirection.startToEnd,
+            onDismissed: (direction) {
+              setState(() {
+                _numStepFields -= 1;
+                _stepIds.remove(id);
+              });
+            },
+            child: RecipeStepFormField(stepOrder: index),
+          );
   }
 
   @override
@@ -77,16 +79,15 @@ class _AddRecipeStepsScreenState extends State<AddRecipeStepsScreen> {
                     ),
                   ),
                 ),
-            
+
                 // Step Description + Timer
-                ...List.generate(_numStepFields, (index){
-                    return Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: _generateRecipeStepFields(index, _stepIds[index]),
-                    );
-                  },
-                ),
-            
+                ...List.generate(_numStepFields, (index) {
+                  return Padding(
+                    padding: const EdgeInsets.all(10.0),
+                    child: _generateRecipeStepFields(index, _stepIds[index]),
+                  );
+                }),
+
                 // BUTTON TO ADD STEPS
                 Padding(
                   padding: const EdgeInsets.all(12.0),
@@ -97,7 +98,7 @@ class _AddRecipeStepsScreenState extends State<AddRecipeStepsScreen> {
                         _stepIds.add(DateTime.now().millisecondsSinceEpoch);
                       });
                     },
-                  child: Column(
+                    child: Column(
                       children: const <Widget>[
                         Icon(Icons.add, color: Colors.blueAccent),
                         Text(
@@ -111,23 +112,35 @@ class _AddRecipeStepsScreenState extends State<AddRecipeStepsScreen> {
                     ),
                   ),
                 ),
-            
+
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10.0),
                   child: ElevatedButton(
                     onPressed: () {
                       if (_formKey.currentState!.saveAndValidate()) {
                         final formFields = _formKey.currentState!.value;
-                            
+                        List<RecipeStep> recipeSteps = [];
+
                         for (int i = 0; i < _numStepFields; i++) {
                           var app = {
-                            "name": formFields["step$i"],
+                            "description": formFields["step$i"],
                             "timer": formFields["stepTimer$i"],
                             "timerUnit": formFields["timeUnit$i"],
                           };
-                            
+
                           print(app);
+                          recipeSteps.add(
+                            RecipeStep(
+                              0,
+                              i,
+                              formFields["step$i"],
+                              formFields["stepTimer$i"],
+                              formFields["timeUnit$i"],
+                            ),
+                          );
                         }
+
+                        Navigator.pushNamed(context, HomeScreen.route);
                       }
                     },
                     style: ElevatedButton.styleFrom(

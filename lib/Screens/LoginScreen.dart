@@ -3,7 +3,7 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 
 class LoginScreen extends StatefulWidget {
-  final String route = "/login";
+  static const String route = "/login";
 
   const LoginScreen({super.key});
 
@@ -109,7 +109,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   _pwdVisibility = !_pwdVisibility;
                                 });
                               },
-                              icon: (_pwdVisibility) ? const Icon(Icons.visibility) : const Icon(Icons.visibility_off),
+                              icon: (_pwdVisibility)
+                                  ? const Icon(Icons.visibility)
+                                  : const Icon(Icons.visibility_off),
                             ),
                           ),
                           obscureText: !_pwdVisibility,
@@ -149,7 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             Expanded(child: Divider(thickness: 2.0)),
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 8.0),
-                              child: Text("or", style: TextStyle(fontSize: 16),),
+                              child: Text("or", style: TextStyle(fontSize: 16)),
                             ),
                             Expanded(child: Divider(thickness: 2.0)),
                           ],
@@ -161,7 +163,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.all(Radius.circular(8)),
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(8),
+                              ),
                             ),
                           ),
                           onPressed: () {},
@@ -173,12 +177,17 @@ class _LoginScreenState extends State<LoginScreen> {
                         spacing: 10,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: <Widget>[
-                          const Text("Are you a new user?", style: TextStyle(fontSize: 14),),
+                          const Text(
+                            "Are you a new user?",
+                            style: TextStyle(fontSize: 14),
+                          ),
 
-                          TextButton(onPressed: (){}, child: const Text("Sign-in"))
+                          TextButton(
+                            onPressed: () {},
+                            child: const Text("Sign-in"),
+                          ),
                         ],
                       ),
-
                     ],
                   ),
                 ),

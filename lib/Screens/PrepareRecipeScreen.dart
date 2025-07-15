@@ -5,7 +5,7 @@ import 'package:tasty_recipe/Models/RecipeStep.dart';
 import 'package:tasty_recipe/Widgets/RecipeStepWidget.dart';
 
 class PrepareRecipeScreen extends StatefulWidget {
-  final String route = "/prepareRecipe";
+  static const String route = "/prepareRecipe";
 
   const PrepareRecipeScreen({super.key});
 
@@ -13,7 +13,8 @@ class PrepareRecipeScreen extends StatefulWidget {
   State<PrepareRecipeScreen> createState() => _PrepareRecipeScreenState();
 }
 
-class _PrepareRecipeScreenState extends State<PrepareRecipeScreen> with SingleTickerProviderStateMixin{
+class _PrepareRecipeScreenState extends State<PrepareRecipeScreen>
+    with SingleTickerProviderStateMixin {
   int _showedStep = 0;
   int _hours = 0, _minutes = 0, _seconds = 0;
   int _remainingSeconds = 0;
@@ -24,7 +25,7 @@ class _PrepareRecipeScreenState extends State<PrepareRecipeScreen> with SingleTi
 
   final Recipe _recipe = Recipe(
     null,
-    1,
+    "1",
     "Chocolate cake",
     2,
     60,
@@ -32,6 +33,7 @@ class _PrepareRecipeScreenState extends State<PrepareRecipeScreen> with SingleTi
     "Dessert",
     ["Lactose Free", "Vegan"],
     false,
+    "",
   );
 
   final List<RecipeStep> _recipeSteps = [
@@ -49,16 +51,22 @@ class _PrepareRecipeScreenState extends State<PrepareRecipeScreen> with SingleTi
       0,
       "minute",
     ),
-    RecipeStep(2, 2, "3 bacdfgrgt vfrgtrsghbt gvfrfagvfrae gvergh", 50, "minute"),
+    RecipeStep(
+      2,
+      2,
+      "3 bacdfgrgt vfrgtrsghbt gvfrfagvfrae gvergh",
+      50,
+      "minute",
+    ),
   ];
 
   @override
-  void initState(){
+  void initState() {
     super.initState();
 
     _controller = AnimationController(
       vsync: this,
-      duration: Duration(minutes:  0)
+      duration: Duration(minutes: 0),
     );
   }
 
@@ -81,9 +89,13 @@ class _PrepareRecipeScreenState extends State<PrepareRecipeScreen> with SingleTi
     }
   }
 
-  void _startRecipeTimer(double duration, String unit){
+  void _startRecipeTimer(double duration, String unit) {
     setState(() {
-      _remainingSeconds = (unit == "hour") ? (duration*60*60).toInt() : (unit == "minute") ? (duration*60).toInt() : duration.toInt();
+      _remainingSeconds = (unit == "hour")
+          ? (duration * 60 * 60).toInt()
+          : (unit == "minute")
+          ? (duration * 60).toInt()
+          : duration.toInt();
       _isRunning = true;
       List<int> countdown = _computeTimerCountdown(_remainingSeconds);
       _hours = countdown[0];
@@ -106,7 +118,7 @@ class _PrepareRecipeScreenState extends State<PrepareRecipeScreen> with SingleTi
           _timer!.cancel();
           _isRunning = false;
           _controller.stop();
-          
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text("Finish!"),
@@ -123,7 +135,7 @@ class _PrepareRecipeScreenState extends State<PrepareRecipeScreen> with SingleTi
     });
   }
 
-  void _restartTimer(){
+  void _restartTimer() {
     _timer?.cancel();
     _controller.reset();
     setState(() {
@@ -132,17 +144,15 @@ class _PrepareRecipeScreenState extends State<PrepareRecipeScreen> with SingleTi
     _startRecipeTimer(_recipeSteps[_showedStep].duration!, "minute");
   }
 
-  List<int> _computeTimerCountdown(int durationInSeconds){
-    if (durationInSeconds < 60)
-      return [0, 0, durationInSeconds];
-    
+  List<int> _computeTimerCountdown(int durationInSeconds) {
+    if (durationInSeconds < 60) return [0, 0, durationInSeconds];
+
     double secondsInMinutes = durationInSeconds / 60;
 
     int minutes = secondsInMinutes.toInt();
     int seconds = ((secondsInMinutes - minutes) * 60).toInt();
 
-    if (minutes < 60)
-      return [0, minutes, seconds];
+    if (minutes < 60) return [0, minutes, seconds];
 
     double minutesInHours = minutes / 60;
     int hours = minutesInHours.toInt();
@@ -155,7 +165,9 @@ class _PrepareRecipeScreenState extends State<PrepareRecipeScreen> with SingleTi
     return RecipeStepWidget(
       step: _recipeSteps[index],
       onPressedNextStep: (!lastStep) ? _goToNextStep : null,
-      onPressedStartTimer: (_recipeSteps[index].duration != null) ? () => _startRecipeTimer(_recipeSteps[index].duration!, "minute") : null,
+      onPressedStartTimer: (_recipeSteps[index].duration != null)
+          ? () => _startRecipeTimer(_recipeSteps[index].duration!, "minute")
+          : null,
       lastStep: lastStep,
       showButtons: true,
       key: ValueKey<int>(_recipeSteps[index].stepOrder),
@@ -200,10 +212,10 @@ class _PrepareRecipeScreenState extends State<PrepareRecipeScreen> with SingleTi
             ),
 
             // TIMER
-            if(_isRunning)
+            if (_isRunning)
               SizedBox(
-                width: MediaQuery.of(context).size.width*0.7,
-                height: MediaQuery.of(context).size.width*0.7,
+                width: MediaQuery.of(context).size.width * 0.7,
+                height: MediaQuery.of(context).size.width * 0.7,
                 child: Stack(
                   alignment: Alignment.center,
                   children: <Widget>[
@@ -214,7 +226,9 @@ class _PrepareRecipeScreenState extends State<PrepareRecipeScreen> with SingleTi
                         color: Colors.white,
                         shadowColor: Colors.purple.shade300,
                         elevation: 10.0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         clipBehavior: Clip.hardEdge,
                         child: Padding(
                           padding: const EdgeInsets.all(20.0),
@@ -222,33 +236,50 @@ class _PrepareRecipeScreenState extends State<PrepareRecipeScreen> with SingleTi
                             value: _controller.value,
                             strokeWidth: 12,
                             backgroundColor: Colors.grey.shade300,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.deepPurple),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.deepPurple,
+                            ),
                           ),
                         ),
                       ),
                     ),
                     Text(
-                      "${(_hours == 0) ? "00" : (_hours < 10) ? "0$_hours" : _hours} : ${(_minutes == 0) ? "00" : (_minutes < 10) ? "0$_minutes" : _minutes} : ${(_seconds == 0) ? "00" : (_seconds<10) ? "0$_seconds" : _seconds}",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      "${(_hours == 0)
+                          ? "00"
+                          : (_hours < 10)
+                          ? "0$_hours"
+                          : _hours} : ${(_minutes == 0)
+                          ? "00"
+                          : (_minutes < 10)
+                          ? "0$_minutes"
+                          : _minutes} : ${(_seconds == 0)
+                          ? "00"
+                          : (_seconds < 10)
+                          ? "0$_seconds"
+                          : _seconds}",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    
+
                     Padding(
-                      padding: const EdgeInsets.only(top:80),
+                      padding: const EdgeInsets.only(top: 80),
                       child: CircleAvatar(
                         backgroundColor: Colors.purple.shade400,
                         child: IconButton(
                           color: Colors.white,
-                          onPressed: (){
+                          onPressed: () {
                             _restartTimer();
                           },
                           tooltip: "Restart timer",
-                          icon: Icon(Icons.restore)
+                          icon: Icon(Icons.restore),
                         ),
-                      )
-                    )
+                      ),
+                    ),
                   ],
                 ),
-              )
+              ),
           ],
         ),
       ),

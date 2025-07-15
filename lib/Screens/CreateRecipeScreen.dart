@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:tasty_recipe/Models/Recipe.dart';
+import 'package:tasty_recipe/Screens/AddRecipeIngredientsScreen.dart';
+import 'package:tasty_recipe/Widgets/MyBottomNavigationBar.dart';
 import 'package:tasty_recipe/Widgets/RecipeGeneralInfoForm.dart';
 
 class CreateRecipeScreen extends StatefulWidget {
-  final String route = "/createRecipe";
+  static const String route = "/createRecipe";
   const CreateRecipeScreen({super.key});
 
   @override
@@ -16,10 +18,20 @@ class CreateRecipeScreen extends StatefulWidget {
 class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
 
-  Recipe _newRecipe = Recipe(null, 0, "", 1, 1, 1, "First Course", [], false);
+  Recipe _newRecipe = Recipe(
+    null,
+    "0",
+    "",
+    1,
+    1,
+    1,
+    "First Course",
+    [],
+    false,
+    "",
+  );
   File? _pickedImg;
   int _selectedChefHat = 0;
-
 
   final List<bool> _selectedTags = [false, false, false, false];
 
@@ -34,7 +46,6 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
       });
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -78,24 +89,24 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
                 recipeImg: _pickedImg,
                 onImageUploaded: _pickImageFromGallery,
                 difficultyLevel: _selectedChefHat,
-                onDifficultyChanged: (difficulty){
+                onDifficultyChanged: (difficulty) {
                   setState(() {
                     _newRecipe.difficulty = difficulty;
                     _selectedChefHat = difficulty;
                   });
                 },
                 selectedTags: _selectedTags,
-                onTagChanged: (tagName, selection){
+                onTagChanged: (tagName, selection) {
                   setState(() {
-                    _selectedTags[Recipe.recipeTags.indexOf(tagName)] = selection;
-                    if (_newRecipe.tags.contains(tagName)){
+                    _selectedTags[Recipe.recipeTags.indexOf(tagName)] =
+                        selection;
+                    if (_newRecipe.tags.contains(tagName)) {
                       _newRecipe.tags.remove(tagName);
-                    }
-                    else{
+                    } else {
                       _newRecipe.tags.add(tagName);
                     }
                   });
-                }
+                },
               ),
 
               ElevatedButton(
@@ -108,9 +119,24 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
                       "difficulty": _newRecipe.difficulty,
                       "servings": formFields["recipeServing"],
                       "category": formFields["recipeCategory"],
-                      "tags": _newRecipe.tags
+                      "tags": _newRecipe.tags,
                     };
-                    print(app);
+
+                    _newRecipe.name = formFields["recipeName"];
+                    _newRecipe.duration = int.parse(
+                      formFields["recipeDuration"],
+                    );
+                    _newRecipe.difficulty = _newRecipe.difficulty;
+                    _newRecipe.servings = int.parse(
+                      formFields["recipeServing"],
+                    );
+                    _newRecipe.category = formFields["recipeCategory"];
+
+                    Navigator.pushNamed(
+                      context,
+                      AddRecipeIngredientsScreen.route,
+                      arguments: _newRecipe,
+                    );
                   }
                 },
                 style: ElevatedButton.styleFrom(
@@ -127,8 +153,10 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
               ),
             ],
           ),
-        )
-      )
+        ),
+
+        bottomNavigationBar: MyBottomNavigationBar(2),
+      ),
     );
   }
 }
