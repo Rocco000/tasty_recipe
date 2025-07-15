@@ -1,15 +1,11 @@
 class RecipeStep {
-  int _recipeId;
+  String _recipeId;
   int _stepOrder;
   String _description;
   double? _duration;
   String? _durationUnit;
 
-  static final timeUnits = [
-    "second",
-    "minute",
-    "hour"
-  ];
+  static final timeUnits = ["second", "minute", "hour"];
 
   RecipeStep(
     this._recipeId,
@@ -19,16 +15,19 @@ class RecipeStep {
     this._durationUnit,
   );
 
-  static String getUnitMeasurementSymbol(String unit){
-    if(!timeUnits.contains(unit))
-      throw Exception("Invalid input!");
+  static String getUnitMeasurementSymbol(String unit) {
+    if (!timeUnits.contains(unit)) throw Exception("Invalid input!");
 
-    return (unit == "hour") ? "h" : (unit == "minute") ? "m" : "s";
+    return (unit == "hour")
+        ? "h"
+        : (unit == "minute")
+        ? "m"
+        : "s";
   }
 
-  int get recipeId => _recipeId;
+  String get recipeId => _recipeId;
 
-  set recipeId(int newRecipeId) => _recipeId = newRecipeId;
+  set recipeId(String newRecipeId) => _recipeId = newRecipeId;
 
   int get stepOrder => _stepOrder;
 

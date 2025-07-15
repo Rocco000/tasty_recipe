@@ -18,28 +18,28 @@ class _EditRecipeStepsScreenState extends State<EditRecipeStepsScreen> {
 
   final List<RecipeStep> _recipeSteps = [
     RecipeStep(
-      0,
+      "0",
       0,
       "ncvsdbvujfbsovabf vsdjnviobfdis v vsfojnbgvrsfjn",
       null,
       null,
     ),
     RecipeStep(
-      0,
+      "0",
       1,
       "ncvsdbvujfbsovabf vsdjnviobfdis v vsfojnbgvrsfjn rgvedrtsgv tg rtedsg esrtd bers dg",
       20,
       "minute",
     ),
     RecipeStep(
-      0,
+      "0",
       2,
       "ncvsdbvujfbsovabf vsdjnviobfdis v vsfojnbgvrsfjn rfg vdfg bd gvrde ",
       1,
       "hour",
     ),
     RecipeStep(
-      0,
+      "0",
       3,
       "ncvsdbvujfbsovabf vsdjnviobfdis v vsfojnbgvrsfjn rfg vdfg bd gvrde ",
       null,

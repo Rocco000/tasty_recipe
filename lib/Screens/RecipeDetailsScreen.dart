@@ -31,32 +31,32 @@ class _RecipeDetailsScreenState extends State<RecipeDetailsScreen> {
 
   final List<RecipeStep> _recipeSteps = [
     RecipeStep(
-      0,
+      "0",
       0,
       "bacdfgrgt vfrgtrsghbt gvfrfagvfrae gvergh, svfdsgvfd . nuinibn ",
       20.5,
       "minute",
     ),
     RecipeStep(
-      1,
+      "1",
       1,
       "bacdfgrgt vfrgtrsghbt gvfrfagvfrae gvergh, fsdg. fretge",
       null,
       null,
     ),
-    RecipeStep(2, 2, "bacdfgrgt vfrgtrsghbt gvfrfagvfrae gvergh", 1, "hour"),
+    RecipeStep("2", 2, "bacdfgrgt vfrgtrsghbt gvfrfagvfrae gvergh", 1, "hour"),
   ];
 
   final List<RecipeIngredient> _recipeIngredients = [
-    RecipeIngredient(1, 1, 250, "gr"),
-    RecipeIngredient(1, 2, 100, "gr"),
-    RecipeIngredient(1, 3, 1, "cup"),
+    RecipeIngredient("1", "1", 250, "gr"),
+    RecipeIngredient("1", "2", 100, "gr"),
+    RecipeIngredient("1", "3", 1, "cup"),
   ];
 
   final List<Ingredient> _ingredients = [
-    Ingredient(0, "Chocolate"),
-    Ingredient(0, "Milk"),
-    Ingredient(0, "Cacao"),
+    Ingredient("0", "Chocolate"),
+    Ingredient("0", "Milk"),
+    Ingredient("0", "Cacao"),
   ];
 
   Widget _generateIngredients(

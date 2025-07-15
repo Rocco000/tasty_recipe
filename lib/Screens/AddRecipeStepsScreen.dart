@@ -131,7 +131,7 @@ class _AddRecipeStepsScreenState extends State<AddRecipeStepsScreen> {
                           print(app);
                           recipeSteps.add(
                             RecipeStep(
-                              0,
+                              "0",
                               i,
                               formFields["step$i"],
                               formFields["stepTimer$i"],

@@ -14,9 +14,9 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   List<Ingredient> _ingredients = [
-    Ingredient(0, "Chocolate"),
-    Ingredient(1, "Cacao"),
-    Ingredient(2, "Milk"),
+    Ingredient("0", "Chocolate"),
+    Ingredient("1", "Cacao"),
+    Ingredient("2", "Milk"),
   ];
 
   List<CartItem> _uncheckedItems = [

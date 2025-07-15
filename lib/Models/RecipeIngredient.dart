@@ -1,6 +1,6 @@
 class RecipeIngredient {
-  int _recipeId;
-  int _ingredientId;
+  String _recipeId;
+  String _ingredientId;
   double _quantity;
   String _unitMeasurement;
 
@@ -16,15 +16,20 @@ class RecipeIngredient {
     "cup",
   ];
 
-  RecipeIngredient(this._recipeId, this._ingredientId, this._quantity, this._unitMeasurement);
+  RecipeIngredient(
+    this._recipeId,
+    this._ingredientId,
+    this._quantity,
+    this._unitMeasurement,
+  );
 
-  int get recipeId => _recipeId;
+  String get recipeId => _recipeId;
 
-  set recipeId(int newRecipeId) => _recipeId = newRecipeId;
+  set recipeId(String newRecipeId) => _recipeId = newRecipeId;
 
-  int get ingredientId => _ingredientId;
+  String get ingredientId => _ingredientId;
 
-  set ingredientId(int newIngredientId) => _ingredientId = newIngredientId;
+  set ingredientId(String newIngredientId) => _ingredientId = newIngredientId;
 
   double get quantity => _quantity;
 

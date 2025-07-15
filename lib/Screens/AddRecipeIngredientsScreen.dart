@@ -21,10 +21,10 @@ class _AddRecipeIngredientsState extends State<AddRecipeIngredientsScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
 
   final List<Ingredient> _allIngredients = [
-    Ingredient(0, "Chocolate"),
-    Ingredient(1, "Milk"),
-    Ingredient(2, "Wheat"),
-    Ingredient(3, "Lime"),
+    Ingredient("0", "Chocolate"),
+    Ingredient("1", "Milk"),
+    Ingredient("2", "Wheat"),
+    Ingredient("3", "Lime"),
   ];
   final List<int> _ingredientIds = [0];
   int _numIngredients = 1;
@@ -158,8 +158,8 @@ class _AddRecipeIngredientsState extends State<AddRecipeIngredientsScreen> {
                           print(app);
                           recipeIngredients.add(
                             RecipeIngredient(
-                              0,
-                              0,
+                              "0",
+                              "0",
                               formFields["ingredientQuantity_$i"],
                               formFields["ingredientUnit_$i"],
                             ),

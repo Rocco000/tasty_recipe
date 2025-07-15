@@ -38,21 +38,21 @@ class _PrepareRecipeScreenState extends State<PrepareRecipeScreen>
 
   final List<RecipeStep> _recipeSteps = [
     RecipeStep(
-      0,
+      "0",
       0,
       "1 bacdfgrgt vfrgtrsghbt gvfrfagvfrae gvergh, svfdsgvfd . nuinibn ",
       2,
       "minute",
     ),
     RecipeStep(
-      1,
+      "1",
       1,
       "2 bacdfgrgt vfrgtrsghbt gvfrfagvfrae gvergh, fsdg. fretge",
       0,
       "minute",
     ),
     RecipeStep(
-      2,
+      "2",
       2,
       "3 bacdfgrgt vfrgtrsghbt gvfrfagvfrae gvergh",
       50,

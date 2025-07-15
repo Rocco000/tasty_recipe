@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 class Recipe {
-  int _id;
+  String _id;
   File? _image;
   String _name;
   int _difficulty;
@@ -11,6 +11,7 @@ class Recipe {
   String _category;
   List<String> _tags;
   bool _favorite = false;
+  String _userId;
 
   static final List<String> categoryList = [
     "First Course",
@@ -27,7 +28,6 @@ class Recipe {
     Image.asset("content/images/snack.png", width: 25, height: 25),
     Icon(Icons.cake_outlined),
   ];
-
 
   static final List<String> recipeTags = [
     "Vegan",
@@ -70,12 +70,13 @@ class Recipe {
     this._category,
     this._tags,
     this._favorite,
+    this._userId,
   );
 
-  static Widget getMealIcon(String mealName){
+  static Widget getMealIcon(String mealName) {
     if (!categoryList.contains(mealName))
       throw Exception("The input meal category doesn't exist!");
-    
+
     return mealIcons[categoryList.indexOf(mealName)];
   }
 
@@ -88,7 +89,7 @@ class Recipe {
   }
 
   File? get image => _image;
-  
+
   set image(File? newImage) => _image = newImage;
 
   String get name => _name;
@@ -118,4 +119,6 @@ class Recipe {
   bool get isFavorite => _favorite;
 
   void changeFavoriteState() => _favorite = !_favorite;
+
+  String get userId => _userId;
 }

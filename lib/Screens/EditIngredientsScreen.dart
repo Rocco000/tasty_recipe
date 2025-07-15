@@ -18,23 +18,23 @@ class _EditIngredientsScreenState extends State<EditIngredientsScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
 
   final List<Ingredient> _allIngredients = [
-    Ingredient(0, "Chocolate"),
-    Ingredient(1, "Milk"),
-    Ingredient(2, "Wheat"),
-    Ingredient(3, "Lime"),
+    Ingredient("0", "Chocolate"),
+    Ingredient("1", "Milk"),
+    Ingredient("2", "Wheat"),
+    Ingredient("3", "Lime"),
   ];
 
   final List<Ingredient> _ingredientNames = [
-    Ingredient(0, "Chocolate"),
-    Ingredient(1, "Milk"),
-    Ingredient(2, "Wheat"),
-    Ingredient(3, "Lime"),
+    Ingredient("0", "Chocolate"),
+    Ingredient("1", "Milk"),
+    Ingredient("2", "Wheat"),
+    Ingredient("3", "Lime"),
   ];
   final List<RecipeIngredient> _recipeIngredients = [
-    RecipeIngredient(0, 0, 500, "gr"),
-    RecipeIngredient(0, 1, 2, "cup"),
-    RecipeIngredient(0, 2, 1000, "gr"),
-    RecipeIngredient(0, 3, 1, "gr"),
+    RecipeIngredient("0", "0", 500, "gr"),
+    RecipeIngredient("0", "1", 2, "cup"),
+    RecipeIngredient("0", "2", 1000, "gr"),
+    RecipeIngredient("0", "3", 1, "gr"),
   ];
 
   int _numIngredients = 1;
