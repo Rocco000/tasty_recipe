@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:tasty_recipe/Screens/CartScreen.dart';
-import 'package:tasty_recipe/Screens/CreateRecipeScreen.dart';
 import 'package:tasty_recipe/Screens/HomeScreen.dart';
 import 'package:tasty_recipe/Screens/ProfileScreen.dart';
 import 'package:tasty_recipe/Screens/ShowRecipeListScreen.dart';
+import 'package:tasty_recipe/Utils/RecipeCreationFlow.dart';
 
 class MyBottomNavigationBar extends StatelessWidget {
   final int index;
@@ -24,7 +24,7 @@ class MyBottomNavigationBar extends StatelessWidget {
           case 1:
             Navigator.pushNamed(context, CartScreen.route);
           case 2:
-            Navigator.pushNamed(context, CreateRecipeScreen.route);
+            Navigator.pushNamed(context, RecipeCreationFlow.route);
           case 3:
             Navigator.pushNamed(context, ShowRecipeListScreen.route);
           case 4:
