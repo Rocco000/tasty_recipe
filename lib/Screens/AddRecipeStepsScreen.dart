@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
-import 'package:tasty_recipe/Models/RecipeStep.dart';
+import 'package:provider/provider.dart';
 import 'package:tasty_recipe/Screens/HomeScreen.dart';
+import 'package:tasty_recipe/Services/RecipeCreationController.dart';
+import 'package:tasty_recipe/Utils/InvalidFieldException.dart';
 import 'package:tasty_recipe/Widgets/DottedButtonWidget.dart';
 import 'package:tasty_recipe/Widgets/RecipeStepFormField.dart';
 
@@ -17,12 +19,19 @@ class AddRecipeStepsScreen extends StatefulWidget {
 class _AddRecipeStepsScreenState extends State<AddRecipeStepsScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
   final List<int> _stepIds = [0];
+  bool _durationErrorFlag = false;
+  bool _isSaving = false;
 
   int _numStepFields = 1;
 
   Widget _generateRecipeStepFields(int index, int id) {
     return (index == 0)
-        ? RecipeStepFormField(stepOrder: index)
+        ? RecipeStepFormField(
+            stepOrder: index,
+            durationErrorMessage: (_durationErrorFlag)
+                ? "Mismatch with total recipe duration"
+                : "",
+          )
         : Dismissible(
             key: ValueKey<int>(id),
             background: DecoratedBox(
@@ -38,19 +47,140 @@ class _AddRecipeStepsScreenState extends State<AddRecipeStepsScreen> {
                 _numStepFields -= 1;
                 _stepIds.remove(id);
               });
+
+              // Clear the form state
+              _formKey.currentState!.removeInternalFieldValue(
+                "stepDescription$index",
+              );
+
+              if (_formKey.currentState!.fields.keys.contains(
+                "stepDuration$index",
+              )) {
+                // Clear optional fields
+                _formKey.currentState!.removeInternalFieldValue(
+                  "stepDuration$index",
+                );
+                _formKey.currentState!.removeInternalFieldValue(
+                  "stepDurationUnit$index",
+                );
+              }
             },
-            child: RecipeStepFormField(stepOrder: index),
+            child: RecipeStepFormField(
+              stepOrder: index,
+              durationErrorMessage: (_durationErrorFlag)
+                  ? "Mismatch with total recipe duration"
+                  : "",
+            ),
           );
+  }
+
+  Future<void> _onSavePressed(RecipeCreationController controller) async {
+    if (_formKey.currentState!.saveAndValidate()) {
+      // Disable save button
+      setState(() {
+        _isSaving = !_isSaving;
+      });
+
+      // Get form state
+      final formFields = _formKey.currentState!.value;
+
+      for (int i = 0; i < _numStepFields; i++) {
+        if (formFields["stepDuration$i"] == null) {
+          // Store step WITHOUT TIMER
+          try {
+            controller.addStep(i, formFields["stepDescription$i"]);
+          } on InvalidFieldException catch (e) {
+            _formKey.currentState!.fields["stepDescription$i"]!.invalidate(
+              "Required",
+            );
+
+            return;
+          }
+        } else {
+          // Store step WITH TIMER
+          try {
+            controller.addStep(
+              i,
+              formFields["stepDescription$i"],
+              stepDuration: double.parse(formFields["stepDuration$i"]),
+              stepDurationUnit: formFields["stepDurationUnit$i"],
+            );
+          } on InvalidFieldException catch (e) {
+            // Highlight with a red border the invalid field
+            if (e.fieldName == "stepDescription") {
+              _formKey.currentState!.fields["stepDescription$i"]!.invalidate(
+                "Required",
+              );
+            } else if (e.fieldName == "stepDuration") {
+              _formKey.currentState!.fields["stepDuration$i"]!.invalidate(
+                "Invalid input",
+              );
+            } else {
+              _formKey.currentState!.fields["stepDurationUnit$i"]!.invalidate(
+                "Invalid input",
+              );
+            }
+
+            return;
+          }
+        }
+      }
+
+      try {
+        // Store data
+        await controller.createNewRecipe();
+
+        // Get the root Navigator instance and move on HomeScreen
+        Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
+          HomeScreen.route,
+          (route) => false,
+          arguments: "Successfully stored a new recipe!",
+        );
+      } on Exception catch (e) {
+        setState(() {
+          // Show error message
+          _durationErrorFlag = true;
+
+          // Active save button
+          _isSaving = !_isSaving;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("$e"),
+            backgroundColor: Colors.black45,
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating, // Makes it float over the UI
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final controller = Provider.of<RecipeCreationController>(
+      context,
+      listen: false,
+    );
+
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.orange,
           foregroundColor: Colors.white,
           title: const Text("Recipe App"),
+          leading: IconButton(
+            onPressed: () {
+              Navigator.pop(context);
+              controller.clearIngredients();
+              controller.clearSteps();
+            },
+            icon: Icon(Icons.arrow_back),
+          ),
         ),
         body: FormBuilder(
           key: _formKey,
@@ -116,33 +246,7 @@ class _AddRecipeStepsScreenState extends State<AddRecipeStepsScreen> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10.0),
                   child: ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.saveAndValidate()) {
-                        final formFields = _formKey.currentState!.value;
-                        List<RecipeStep> recipeSteps = [];
-
-                        for (int i = 0; i < _numStepFields; i++) {
-                          var app = {
-                            "description": formFields["step$i"],
-                            "timer": formFields["stepTimer$i"],
-                            "timerUnit": formFields["timeUnit$i"],
-                          };
-
-                          print(app);
-                          recipeSteps.add(
-                            RecipeStep(
-                              "0",
-                              i,
-                              formFields["step$i"],
-                              formFields["stepTimer$i"],
-                              formFields["timeUnit$i"],
-                            ),
-                          );
-                        }
-
-                        Navigator.pushNamed(context, HomeScreen.route);
-                      }
-                    },
+                    onPressed: () => _onSavePressed(controller),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blueAccent,
                       foregroundColor: Colors.white,

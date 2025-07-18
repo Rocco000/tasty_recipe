@@ -7,8 +7,14 @@ import 'package:tasty_recipe/Models/RecipeStep.dart';
 class RecipeStepFormField extends StatefulWidget {
   final int stepOrder;
   final RecipeStep? recipeStep;
+  String durationErrorMessage;
 
-  const RecipeStepFormField({required this.stepOrder, this.recipeStep, super.key});
+  RecipeStepFormField({
+    required this.stepOrder,
+    required this.durationErrorMessage,
+    this.recipeStep,
+    super.key,
+  });
 
   @override
   State<StatefulWidget> createState() {
@@ -22,7 +28,10 @@ class _RecipeStepFormFieldState extends State<RecipeStepFormField> {
   @override
   void initState() {
     super.initState();
-    _hasTimer = (widget.recipeStep != null && widget.recipeStep!.duration != null) ? true : false;
+    _hasTimer =
+        (widget.recipeStep != null && widget.recipeStep!.duration != null)
+        ? true
+        : false;
   }
 
   @override
@@ -38,20 +47,25 @@ class _RecipeStepFormFieldState extends State<RecipeStepFormField> {
             // TEXT
             Container(
               alignment: Alignment.centerLeft,
-              child: Text("Step ${widget.stepOrder + 1}", 
+              child: Text(
+                "Step ${widget.stepOrder + 1}",
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              )
+              ),
             ),
-        
+
             // DESCRIPTION
             Container(
-              padding: const EdgeInsets.only(top:8.0, bottom:8.0),
+              padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
               child: FormBuilderTextField(
-                name: "step${widget.stepOrder}",
+                name: "stepDescription${widget.stepOrder}",
                 maxLines: 5,
                 minLines: 2,
-                initialValue: (widget.recipeStep != null) ? widget.recipeStep!.description : "",
-                validator: FormBuilderValidators.required(errorText: "Required"),
+                initialValue: (widget.recipeStep != null)
+                    ? widget.recipeStep!.description
+                    : "",
+                validator: FormBuilderValidators.required(
+                  errorText: "Required",
+                ),
                 decoration: InputDecoration(
                   icon: Image.asset(
                     "content/images/chefUtensil.png",
@@ -62,7 +76,7 @@ class _RecipeStepFormFieldState extends State<RecipeStepFormField> {
                 ),
               ),
             ),
-        
+
             // TIMER CHECK BOX
             Row(
               children: [
@@ -88,17 +102,27 @@ class _RecipeStepFormFieldState extends State<RecipeStepFormField> {
                     // TIME
                     Expanded(
                       child: FormBuilderTextField(
-                        name: "stepTimer${widget.stepOrder}",
-                        initialValue: (widget.recipeStep != null && widget.recipeStep!.duration != null) ? widget.recipeStep!.duration.toString() : "",
+                        name: "stepDuration${widget.stepOrder}",
+                        initialValue:
+                            (widget.recipeStep != null &&
+                                widget.recipeStep!.duration != null)
+                            ? widget.recipeStep!.duration.toString()
+                            : "",
                         validator: FormBuilderValidators.compose([
                           FormBuilderValidators.required(errorText: "Required"),
                           FormBuilderValidators.numeric(
                             errorText: "Insert a number",
                           ),
                         ]),
+                        onChanged: (value) => setState(() {
+                          widget.durationErrorMessage = "";
+                        }),
                         decoration: InputDecoration(
                           icon: Icon(Icons.timer_outlined),
                           labelText: "Time",
+                          errorText: (widget.durationErrorMessage.isEmpty)
+                              ? null
+                              : widget.durationErrorMessage,
                         ),
                         keyboardType: TextInputType.number,
                         inputFormatters: <TextInputFormatter>[
@@ -106,20 +130,28 @@ class _RecipeStepFormFieldState extends State<RecipeStepFormField> {
                         ],
                       ),
                     ),
-        
+
                     SizedBox(width: 12),
-                    
+
                     // TIME UNIT
                     Expanded(
                       child: FormBuilderDropdown<String>(
-                        name: "timeUnit${widget.stepOrder}",
-                        initialValue: (widget.recipeStep != null && widget.recipeStep!.durationUnit != null) ? widget.recipeStep!.durationUnit : "",
+                        name: "stepDurationUnit${widget.stepOrder}",
+                        initialValue:
+                            (widget.recipeStep != null &&
+                                widget.recipeStep!.durationUnit != null)
+                            ? widget.recipeStep!.durationUnit
+                            : "",
                         hint: Text("Time unit"),
-                        decoration: InputDecoration(contentPadding: EdgeInsets.symmetric(vertical: 16)),
+                        decoration: InputDecoration(
+                          contentPadding: EdgeInsets.symmetric(vertical: 16),
+                        ),
                         validator: FormBuilderValidators.compose([
                           FormBuilderValidators.required(errorText: "Required"),
-                          (value){
-                            return (!RecipeStep.timeUnits.contains(value)) ? "Invalid input" : null;
+                          (value) {
+                            return (!RecipeStep.timeUnits.contains(value))
+                                ? "Invalid input"
+                                : null;
                           },
                         ]),
                         items: [
