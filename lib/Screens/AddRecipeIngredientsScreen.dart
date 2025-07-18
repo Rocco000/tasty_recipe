@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
+import 'package:provider/provider.dart';
 import 'package:tasty_recipe/Models/Ingredient.dart';
-import 'package:tasty_recipe/Models/RecipeIngredient.dart';
 import 'package:tasty_recipe/Screens/AddRecipeStepsScreen.dart';
+import 'package:tasty_recipe/Services/RecipeCreationController.dart';
+import 'package:tasty_recipe/Utils/InvalidFieldException.dart';
 import 'package:tasty_recipe/Widgets/IngredientFormField.dart';
 import 'package:tasty_recipe/Widgets/DottedButtonWidget.dart';
 
@@ -29,10 +31,6 @@ class _AddRecipeIngredientsState extends State<AddRecipeIngredientsScreen> {
   final List<int> _ingredientIds = [0];
   int _numIngredients = 1;
 
-  List<String> _recipeIngredients = [];
-  List<String> _ingredientUnits = [];
-  List<double> _ingredientQuantities = [];
-
   Widget _generateIngredientField(int index, int id) {
     return (index == 0)
         ? IngredientFormField(
@@ -54,6 +52,17 @@ class _AddRecipeIngredientsState extends State<AddRecipeIngredientsScreen> {
                 _numIngredients -= 1;
                 _ingredientIds.remove(id);
               });
+
+              // Clear the form state
+              _formKey.currentState!.removeInternalFieldValue(
+                "ingredientName$index",
+              );
+              _formKey.currentState!.removeInternalFieldValue(
+                "ingredientUnit$index",
+              );
+              _formKey.currentState!.removeInternalFieldValue(
+                "ingredientQuantity$index",
+              );
             },
             child: IngredientFormField(
               ingredientNumber: index,
@@ -62,14 +71,56 @@ class _AddRecipeIngredientsState extends State<AddRecipeIngredientsScreen> {
           );
   }
 
+  void _onContinuePressed(RecipeCreationController controller) {
+    if (_formKey.currentState!.saveAndValidate()) {
+      final formFields = _formKey.currentState!.value;
+
+      for (int i = 0; i < _numIngredients; i++) {
+        try {
+          controller.addIngredient(
+            formFields["ingredientName$i"],
+            double.parse(formFields["ingredientQuantity$i"]),
+            formFields["ingredientUnit$i"],
+          );
+        } on InvalidFieldException catch (e) {
+          // Highlight with a red border the correct invalid field
+          if (e.fieldName == "ingredientName") {
+            _formKey.currentState!.fields["ingredientName$i"]!.invalidate("");
+          } else if (e.fieldName == "ingredientQuantity") {
+            _formKey.currentState!.fields["ingredientQuantity$i"]!.invalidate(
+              "",
+            );
+          } else {
+            _formKey.currentState!.fields["ingredientUnit$i"]!.invalidate("");
+          }
+          print(e.message);
+          return;
+        }
+      }
+
+      // Move to the next screen
+      Navigator.pushNamed(context, AddRecipeStepsScreen.route);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final RecipeCreationController controller =
+        Provider.of<RecipeCreationController>(context, listen: false);
+
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
           title: const Text("Recipe App"),
           backgroundColor: Colors.orange,
           foregroundColor: Colors.white,
+          leading: IconButton(
+            onPressed: () {
+              Navigator.pop(context);
+              controller.clearIngredients();
+            },
+            icon: Icon(Icons.arrow_back),
+          ),
         ),
         body: FormBuilder(
           key: _formKey,
@@ -142,37 +193,7 @@ class _AddRecipeIngredientsState extends State<AddRecipeIngredientsScreen> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10.0),
                   child: ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.saveAndValidate()) {
-                        final formFields = _formKey.currentState!.value;
-
-                        List<RecipeIngredient> recipeIngredients = [];
-
-                        for (int i = 0; i < _numIngredients; i++) {
-                          var app = {
-                            "name": formFields["ingredient_$i"],
-                            "unit": formFields["ingredientUnit_$i"],
-                            "quantity": formFields["ingredientQuantity_$i"],
-                          };
-
-                          print(app);
-                          recipeIngredients.add(
-                            RecipeIngredient(
-                              "0",
-                              "0",
-                              formFields["ingredientQuantity_$i"],
-                              formFields["ingredientUnit_$i"],
-                            ),
-                          );
-                        }
-
-                        Navigator.pushNamed(
-                          context,
-                          AddRecipeStepsScreen.route,
-                          arguments: recipeIngredients,
-                        );
-                      }
-                    },
+                    onPressed: () => _onContinuePressed(controller),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blueAccent,
                       foregroundColor: Colors.white,
