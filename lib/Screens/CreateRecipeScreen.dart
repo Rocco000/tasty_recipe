@@ -2,8 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import 'package:tasty_recipe/Models/Recipe.dart';
 import 'package:tasty_recipe/Screens/AddRecipeIngredientsScreen.dart';
+import 'package:tasty_recipe/Services/RecipeCreationController.dart';
 import 'package:tasty_recipe/Widgets/MyBottomNavigationBar.dart';
 import 'package:tasty_recipe/Widgets/RecipeGeneralInfoForm.dart';
 
@@ -18,32 +20,43 @@ class CreateRecipeScreen extends StatefulWidget {
 class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
 
-  Recipe _newRecipe = Recipe(
-    null,
-    "0",
-    "",
-    1,
-    1,
-    1,
-    "First Course",
-    [],
-    false,
-    "",
-  );
   File? _pickedImg;
   int _selectedChefHat = 0;
 
   final List<bool> _selectedTags = [false, false, false, false];
+  final List<String> _selectedTagNames = [];
 
   Future _pickImageFromGallery() async {
     // source: indicate where it should pick the image
     final img = await ImagePicker().pickImage(source: ImageSource.gallery);
 
-    // WHY???
     if (img != null) {
       setState(() {
         _pickedImg = File(img.path);
       });
+    }
+  }
+
+  void _onContinuePressed() {
+    if (_formKey.currentState!.saveAndValidate()) {
+      final formFields = _formKey.currentState!.value;
+
+      // Get controller instance
+      final RecipeCreationController controller =
+          Provider.of<RecipeCreationController>(context, listen: false);
+
+      // Temporarly store the recipe general info
+      controller.setGeneralInfo(
+        formFields["recipeName"],
+        int.parse(formFields["recipeDuration"]),
+        _selectedChefHat,
+        int.parse(formFields["recipeServing"]),
+        formFields["recipeCategory"],
+        _selectedTagNames,
+      );
+
+      // Navigate to the next screen
+      Navigator.pushNamed(context, AddRecipeIngredientsScreen.route);
     }
   }
 
@@ -91,7 +104,6 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
                 difficultyLevel: _selectedChefHat,
                 onDifficultyChanged: (difficulty) {
                   setState(() {
-                    _newRecipe.difficulty = difficulty;
                     _selectedChefHat = difficulty;
                   });
                 },
@@ -100,45 +112,17 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
                   setState(() {
                     _selectedTags[Recipe.recipeTags.indexOf(tagName)] =
                         selection;
-                    if (_newRecipe.tags.contains(tagName)) {
-                      _newRecipe.tags.remove(tagName);
+                    if (_selectedTagNames.contains(tagName)) {
+                      _selectedTagNames.remove(tagName);
                     } else {
-                      _newRecipe.tags.add(tagName);
+                      _selectedTagNames.add(tagName);
                     }
                   });
                 },
               ),
 
               ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.saveAndValidate()) {
-                    final formFields = _formKey.currentState!.value;
-                    var app = {
-                      "name": formFields["recipeName"],
-                      "duration": formFields["recipeDuration"],
-                      "difficulty": _newRecipe.difficulty,
-                      "servings": formFields["recipeServing"],
-                      "category": formFields["recipeCategory"],
-                      "tags": _newRecipe.tags,
-                    };
-
-                    _newRecipe.name = formFields["recipeName"];
-                    _newRecipe.duration = int.parse(
-                      formFields["recipeDuration"],
-                    );
-                    _newRecipe.difficulty = _newRecipe.difficulty;
-                    _newRecipe.servings = int.parse(
-                      formFields["recipeServing"],
-                    );
-                    _newRecipe.category = formFields["recipeCategory"];
-
-                    Navigator.pushNamed(
-                      context,
-                      AddRecipeIngredientsScreen.route,
-                      arguments: _newRecipe,
-                    );
-                  }
-                },
+                onPressed: () => _onContinuePressed(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blueAccent,
                   foregroundColor: Colors.white,
