@@ -1,4 +1,3 @@
-import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
@@ -14,66 +13,33 @@ class IngredientFormField extends StatelessWidget {
 
   const IngredientFormField({
     required this.ingredientNumber,
-    required this.ingredientList, 
+    required this.ingredientList,
     this.ingredientName,
     this.recipeIngredient,
-    super.key
+    super.key,
   });
 
-  Widget _ingredientNameInEditMode(){
+  Widget _ingredientNameInEditMode() {
     return Text(
       ingredientName!,
       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
     );
   }
 
-  Widget _ingredientNameInCreateMode(){
+  Widget _ingredientNameInCreateMode() {
     return Expanded(
       flex: 3,
-      child: FormBuilderField(
+      child: FormBuilderTextField(
         name: "ingredientName$ingredientNumber",
         initialValue: (recipeIngredient != null) ? ingredientName : "",
         validator: FormBuilderValidators.required(errorText: "Required"),
-        builder: (fieldState) {
-          return DropdownSearch<String>(
-            selectedItem: (recipeIngredient != null) ? ingredientName : null,
-            items: (filter, loadProps) {
-              return ingredientList.
-                  where(
-                    (item) => (item.name.toLowerCase().contains(filter.toLowerCase())),
-                  )
-                  .map((item) => item.name)
-                  .toList();
-            },
-            // Search Bar
-            popupProps: PopupProps.menu(
-              showSearchBox: true,
-              searchFieldProps: TextFieldProps(
-                decoration: InputDecoration(hintText: "Search ingredient"),
-              ),
-            ),
-            decoratorProps: DropDownDecoratorProps(
-              textAlign: TextAlign.center,
-              decoration: InputDecoration(
-                hintText: "Name",
-                hintStyle: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey,
-                ),
-              ),
-            ),
-          );
-        },
+        decoration: InputDecoration(labelText: "Ingredient name"),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    print("${recipeIngredient != null}");
-    print(RecipeIngredient.units[0]);
-    print("--------------------");
-
     return Card(
       elevation: 6,
       shadowColor: Colors.orange[200],
@@ -85,27 +51,40 @@ class IngredientFormField extends StatelessWidget {
             // INGREDIENT i-th
             Container(
               alignment: Alignment.centerLeft,
-              child: Text("Ingredient ${ingredientNumber+1}:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),)
+              child: Text(
+                "Ingredient ${ingredientNumber + 1}:",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+              ),
             ),
-              
+
             Row(
               children: <Widget>[
                 // INGREDIENT NAME
-                (recipeIngredient != null) ? _ingredientNameInEditMode() : _ingredientNameInCreateMode(),
-            
+                (recipeIngredient != null)
+                    ? _ingredientNameInEditMode()
+                    : _ingredientNameInCreateMode(),
+
                 SizedBox(width: 12),
-            
+
                 // INGREDIENT UNIT
                 Expanded(
                   flex: 2,
                   child: FormBuilderDropdown<String>(
                     name: "ingredientUnit$ingredientNumber",
-                    initialValue: (recipeIngredient != null) ? recipeIngredient!.unitMeasurement : RecipeIngredient.units[0],
+                    initialValue: (recipeIngredient != null)
+                        ? recipeIngredient!.unitMeasurement
+                        : RecipeIngredient.units[0],
                     validator: FormBuilderValidators.compose([
                       FormBuilderValidators.required(errorText: "Required"),
-                      (value){return (!RecipeIngredient.units.contains(value)) ? "Invalid input" : null;},
+                      (value) {
+                        return (!RecipeIngredient.units.contains(value))
+                            ? "Invalid input"
+                            : null;
+                      },
                     ]),
-                    items: List.generate(RecipeIngredient.units.length, (index) {
+                    items: List.generate(RecipeIngredient.units.length, (
+                      index,
+                    ) {
                       return DropdownMenuItem(
                         value: RecipeIngredient.units[index],
                         child: Text(RecipeIngredient.units[index]),
@@ -113,20 +92,26 @@ class IngredientFormField extends StatelessWidget {
                     }),
                   ),
                 ),
-            
+
                 SizedBox(width: 12),
-            
+
                 // INGREDIENT QUANTITY
                 Expanded(
                   child: FormBuilderTextField(
                     name: "ingredientQuantity$ingredientNumber",
-                    initialValue: (recipeIngredient != null) ? recipeIngredient!.quantity.toString() : "",
+                    initialValue: (recipeIngredient != null)
+                        ? recipeIngredient!.quantity.toString()
+                        : "",
                     validator: FormBuilderValidators.compose([
                       FormBuilderValidators.required(errorText: "Required"),
-                      FormBuilderValidators.numeric(errorText: "Insert a number"),
+                      FormBuilderValidators.numeric(
+                        errorText: "Insert a number",
+                      ),
                     ]),
                     decoration: InputDecoration(hintText: "1"),
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     inputFormatters: <TextInputFormatter>[
                       FilteringTextInputFormatter.allow(RegExp(r"^\d+\.?\d?")),
                     ],
@@ -136,7 +121,7 @@ class IngredientFormField extends StatelessWidget {
             ),
           ],
         ),
-      )
+      ),
     );
   }
 }
