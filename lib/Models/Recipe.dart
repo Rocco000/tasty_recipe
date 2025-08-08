@@ -88,6 +88,8 @@ class Recipe {
     return recipeTagIcons[index];
   }
 
+  String get id => _id;
+
   File? get image => _image;
 
   set image(File? newImage) => _image = newImage;
