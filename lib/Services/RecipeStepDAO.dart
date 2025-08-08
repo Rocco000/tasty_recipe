@@ -1,8 +1,36 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:tasty_recipe/Models/RecipeStep.dart';
 import 'package:tasty_recipe/Services/DAO.dart';
+import 'package:tasty_recipe/Utils/DataNotFoundException.dart';
 
 class RecipeStepDAO extends DAO<RecipeStep> {
+  
+  Future<List<RecipeStep>> getAllRecipeStepById(String recipeId) async {
+    if (recipeId.isEmpty) {
+      throw ArgumentError("Invalid input.");
+    }
+
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection("RecipeStep")
+        .where("recipeId", isEqualTo: recipeId)
+        .get();
+
+    if (querySnapshot.docs.isEmpty) {
+      throw DataNotFoundException("No steps found for that recipe!", StackTrace.current);
+    } else {
+      return querySnapshot.docs.map((doc) {
+        final docData = doc.data();
+        return RecipeStep(
+          docData["recipeId"],
+          docData["stepOrder"],
+          docData["description"],
+          docData["duration"],
+          docData["durationUnit"],
+        );
+      }).toList();
+    }
+  }
+
   @override
   Future<void> delete(RecipeStep item) {
     // TODO: implement delete
