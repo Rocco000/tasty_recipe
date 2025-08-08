@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:tasty_recipe/Models/MyUser.dart';
+import 'package:tasty_recipe/Screens/RecipeListScreen.dart';
+import 'package:tasty_recipe/Services/RecipeListController.dart';
+import 'package:tasty_recipe/Utils/RecipeFilter.dart';
 import 'package:tasty_recipe/Widgets/CategoryCardWidget.dart';
 import 'package:tasty_recipe/Widgets/MyBottomNavigationBar.dart';
 
@@ -25,12 +28,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _generateCategoryCard(int index) {
     String category = _backgroundImgs.keys.elementAt(index);
+    late final RecipeListController controller;
+    switch(category){
+      case "Breakfast":
+        controller = RecipeListController(RecipeFilter.breakfast());
+      case "First course":
+        controller = RecipeListController(RecipeFilter.firstCourse());
+      case "Second course":
+        controller = RecipeListController(RecipeFilter.secondCourse());
+      case "Snack":
+        controller = RecipeListController(RecipeFilter.snack());
+      case "Dessert":
+        controller = RecipeListController(RecipeFilter.dessert());
+    }
 
     return Center(
       child: CategoryCardWidget(
         label: category,
         background: _backgroundImgs[category]!,
-        onTap: () {},
+        onTap: () {
+          Navigator.pushNamed(context, RecipeListScreen.route, arguments: controller);
+        },
       ),
     );
   }

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:tasty_recipe/Screens/CartScreen.dart';
 import 'package:tasty_recipe/Screens/HomeScreen.dart';
 import 'package:tasty_recipe/Screens/ProfileScreen.dart';
-import 'package:tasty_recipe/Screens/ShowRecipeListScreen.dart';
+import 'package:tasty_recipe/Screens/RecipeListScreen.dart';
+import 'package:tasty_recipe/Services/RecipeListController.dart';
 import 'package:tasty_recipe/Utils/RecipeCreationFlow.dart';
+import 'package:tasty_recipe/Utils/RecipeFilter.dart';
 
 class MyBottomNavigationBar extends StatelessWidget {
   final int index;
@@ -26,7 +28,8 @@ class MyBottomNavigationBar extends StatelessWidget {
           case 2:
             Navigator.pushNamed(context, RecipeCreationFlow.route);
           case 3:
-            Navigator.pushNamed(context, ShowRecipeListScreen.route);
+            final controller = RecipeListController(RecipeFilter.favorites());
+            Navigator.pushNamed(context, RecipeListScreen.route, arguments: controller);
           case 4:
             Navigator.pushNamed(context, ProfileScreen.route);
           default:

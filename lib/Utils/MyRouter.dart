@@ -8,8 +8,10 @@ import 'package:tasty_recipe/Screens/LoginScreen.dart';
 import 'package:tasty_recipe/Screens/PrepareRecipeScreen.dart';
 import 'package:tasty_recipe/Screens/ProfileScreen.dart';
 import 'package:tasty_recipe/Screens/RecipeDetailsScreen.dart';
-import 'package:tasty_recipe/Screens/ShowRecipeListScreen.dart';
+import 'package:tasty_recipe/Screens/RecipeListScreen.dart';
 import 'package:tasty_recipe/Screens/SingInScreen.dart';
+import 'package:tasty_recipe/Services/RecipeDetailsController.dart';
+import 'package:tasty_recipe/Services/RecipeListController.dart';
 import 'package:tasty_recipe/Utils/RecipeCreationFlow.dart';
 
 abstract class MyRouter {
@@ -38,11 +40,13 @@ abstract class MyRouter {
           case EditRecipeStepsScreen.route:
             return EditRecipeStepsScreen();
           case RecipeDetailsScreen.route:
-            return RecipeDetailsScreen();
+            final String recipeId = settings.arguments as String;
+            return RecipeDetailsScreen(recipeId, RecipeDetailsController());
           case PrepareRecipeScreen.route:
             return PrepareRecipeScreen();
-          case ShowRecipeListScreen.route:
-            return ShowRecipeListScreen();
+          case RecipeListScreen.route:
+            final controller = settings.arguments as RecipeListController;
+            return RecipeListScreen(controller: controller,);
           case CartScreen.route:
             return CartScreen();
           default:
