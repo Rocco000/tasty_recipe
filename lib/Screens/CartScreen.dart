@@ -1,39 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:tasty_recipe/Models/CartItem.dart';
 import 'package:tasty_recipe/Models/Ingredient.dart';
+import 'package:tasty_recipe/Services/CartController.dart';
 import 'package:tasty_recipe/Widgets/MyBottomNavigationBar.dart';
 
 class CartScreen extends StatefulWidget {
   static const String route = "/cartScreen";
+  final CartController _controller;
 
-  const CartScreen({super.key});
+  const CartScreen(this._controller, {super.key});
 
   @override
   State<CartScreen> createState() => _CartScreenState();
 }
 
 class _CartScreenState extends State<CartScreen> {
-  List<Ingredient> _ingredients = [
-    Ingredient("0", "Chocolate"),
-    Ingredient("1", "Cacao"),
-    Ingredient("2", "Milk"),
-  ];
+  late List<CartItem> _uncheckedItems;
+  late List<Ingredient> _ingredientList;
+  late Future<(List<CartItem>, List<Ingredient>)> _cartFuture;
 
-  List<CartItem> _uncheckedItems = [
-    CartItem("abc", 0, 250, "gr", false),
-    CartItem("abc", 1, 100, "gr", false),
-    CartItem("abc", 2, 2, "cup", false),
-  ];
-
+  List<Ingredient> _checkedIngredients = [];
   List<CartItem> _checkedItems = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _cartFuture = widget._controller.getAllCartItems();
+  }
 
   Widget _generateUncheckedItem(int index) {
     // Get the corresponding ingredient name
-    final String ingredientName = _ingredients[index].name;
+    final String ingredientName = _ingredientList[index].name;
     final CartItem cartItem = _uncheckedItems[index];
 
     return Dismissible(
-      key: ValueKey<int>(cartItem.ingredientId),
+      key: ValueKey<String>(cartItem.ingredientId),
       // Bin icon
       background: DecoratedBox(
         decoration: BoxDecoration(color: Colors.red),
@@ -42,14 +43,35 @@ class _CartScreenState extends State<CartScreen> {
           child: Icon(Icons.delete, color: Colors.white),
         ),
       ),
-      onDismissed: (direction) {
+      confirmDismiss: (direction) async {
+        final bool result = await widget._controller.removeItemFromCart(
+          cartItem,
+        );
+
+        if (!result) {
+          //Something went wrong in the delete procedure
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text("Something went wrong. Try again"),
+              backgroundColor: const Color(0xFFE63946),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating, // Makes it float over the UI
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+
+          return false; // Prevent dismiss
+        }
+
+        // Remove item from list
         setState(() {
-          print(_uncheckedItems[index]);
-          _uncheckedItems.removeAt(
-            index,
-          ); // removeWhere((item) => item.ingredientId == cartItem.ingredientId)
-          print(_uncheckedItems.length);
+          _uncheckedItems.removeAt(index);
+          _ingredientList.removeAt(index);
         });
+
+        return true;
       },
       child: CheckboxListTile(
         value: cartItem.isChecked,
@@ -57,12 +79,19 @@ class _CartScreenState extends State<CartScreen> {
           setState(() {
             // Set the checked state to checked
             cartItem.checkStatus = !cartItem.isChecked;
-            // Add the item in the checked list
-            _checkedItems.add(cartItem);
             // Remove the item from the unchecked list
             _uncheckedItems.removeAt(
               index,
             ); // removeWhere((item) => item.ingredientId == cartItem.ingredientId)
+
+            // Add ingredient in the checked ingredient list
+            _checkedIngredients.add(_ingredientList[index]);
+
+            // Remove the ingredient from the list
+            _ingredientList.removeAt(index);
+
+            // Add item in the checked list
+            _checkedItems.add(cartItem);
           });
         },
         title: Text(ingredientName, style: const TextStyle(fontSize: 18)),
@@ -71,8 +100,8 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Widget _generateCheckedItem(int index) {
-    // Get the corresponding ingredient name
-    String ingredientName = _ingredients[index].name;
+    // Get the ingredient name
+    String ingredientName = _checkedIngredients[index].name;
 
     return CheckboxListTile(
       value: _checkedItems[index].isChecked,
@@ -86,6 +115,12 @@ class _CartScreenState extends State<CartScreen> {
 
           // Remove the item from the checked list
           _checkedItems.removeAt(index);
+
+          // Add ingredient in the unchecked ingredient list
+          _ingredientList.add(_checkedIngredients[index]);
+
+          // Remove ingredient from the checked ingredient list
+          _checkedIngredients.removeAt(index);
         });
       },
       title: Text(
@@ -115,10 +150,31 @@ class _CartScreenState extends State<CartScreen> {
               ),
             ),
             trailing: IconButton(
-              onPressed: () {
-                setState(() {
-                  _checkedItems.clear();
-                });
+              onPressed: () async {
+                final bool result = await widget._controller
+                    .removeItemsFromCart(_checkedItems);
+
+                if (result) {
+                  // All items have been removed
+                  setState(() {
+                    _checkedItems.clear();
+                    _checkedIngredients.clear();
+                  });
+                } else {
+                  // Something went wrong in the delete procedure
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text("Something went wrong. Try again"),
+                      backgroundColor: const Color(0xFFE63946),
+                      duration: const Duration(seconds: 2),
+                      behavior: SnackBarBehavior
+                          .floating, // Makes it float over the UI
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                }
               },
               icon: const Icon(Icons.delete),
               tooltip: "Clear all",
@@ -137,6 +193,49 @@ class _CartScreenState extends State<CartScreen> {
     ];
   }
 
+  Widget _generateErrorMessage(Object error) {
+    String msg = error.toString();
+    final index = msg.indexOf(":");
+    if (index != -1 && index < msg.length - 1) {
+      msg = msg.substring(index + 1).trim();
+    } else {
+      msg = "Something went wrong. Try again";
+    }
+
+    return Center(
+      child: SizedBox(
+        width: MediaQuery.of(context).size.width * 0.8,
+        height: MediaQuery.of(context).size.height * 0.3,
+        child: Card(
+          color: const Color(
+            0xFFFFF9F4,
+          ), // const Color.fromRGBO(230, 57, 70, 0.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              const Icon(
+                Icons.warning_amber_rounded,
+                size: 48,
+                color: Color(0xFFE63946),
+              ),
+              Text(
+                msg,
+                style: const TextStyle(
+                  color: Color(0xFFE63946),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -146,51 +245,87 @@ class _CartScreenState extends State<CartScreen> {
           foregroundColor: Colors.white,
           title: const Text("Tasty Recipe"),
         ),
-        body: CustomScrollView(
-          slivers: <Widget>[
-            // UNCHECKED
-            SliverToBoxAdapter(
-              child: Container(
-                padding: const EdgeInsets.all(16.0),
+        body: FutureBuilder<(List<CartItem>, List<Ingredient>)>(
+          future: _cartFuture,
+          builder: (context, snapshot) {
+            // Show loading spinner while waiting
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Container(
                 alignment: Alignment.center,
-                child: Text(
-                  'Shopping List',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                color: Colors.white,
+                child: SizedBox(
+                  width: 50,
+                  height: 50,
+                  child: const CircularProgressIndicator(color: Colors.orange),
                 ),
-              ),
-            ),
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) => _generateUncheckedItem(index),
-                childCount: _uncheckedItems.length,
-              ),
-            ),
+              );
+            }
 
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    foregroundColor: Colors.white,
-                    shadowColor: Colors.black,
-                    elevation: 2.0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(2),
+            // Show error message if something went wrong
+            if (snapshot.hasError) {
+              print(snapshot.error);
+              return _generateErrorMessage(snapshot.error!);
+            }
+
+            final (List<CartItem> items, List<Ingredient> ingredients) =
+                snapshot.data!;
+            _uncheckedItems = items;
+            _ingredientList = ingredients;
+
+            return CustomScrollView(
+              slivers: <Widget>[
+                // UNCHECKED
+                SliverToBoxAdapter(
+                  child: Container(
+                    padding: const EdgeInsets.all(16.0),
+                    alignment: Alignment.center,
+                    child: Text(
+                      'Shopping List',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                  child: const Text(
-                    "Add item",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => _generateUncheckedItem(index),
+                    childCount: _uncheckedItems.length,
                   ),
                 ),
-              ),
-            ),
 
-            // CHECKED
-            if (_checkedItems.isNotEmpty) ..._generateCompletedScreen(),
-          ],
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: ElevatedButton(
+                      onPressed: () {},
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        foregroundColor: Colors.white,
+                        shadowColor: Colors.black,
+                        elevation: 2.0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      child: const Text(
+                        "Add item",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // CHECKED
+                if (_checkedItems.isNotEmpty) ..._generateCompletedScreen(),
+              ],
+            );
+          },
         ),
 
         floatingActionButton: FloatingActionButton(

@@ -10,6 +10,7 @@ import 'package:tasty_recipe/Screens/ProfileScreen.dart';
 import 'package:tasty_recipe/Screens/RecipeDetailsScreen.dart';
 import 'package:tasty_recipe/Screens/RecipeListScreen.dart';
 import 'package:tasty_recipe/Screens/SingInScreen.dart';
+import 'package:tasty_recipe/Services/CartController.dart';
 import 'package:tasty_recipe/Services/RecipeDetailsController.dart';
 import 'package:tasty_recipe/Services/RecipeListController.dart';
 import 'package:tasty_recipe/Utils/RecipeCreationFlow.dart';
@@ -46,9 +47,9 @@ abstract class MyRouter {
             return PrepareRecipeScreen();
           case RecipeListScreen.route:
             final controller = settings.arguments as RecipeListController;
-            return RecipeListScreen(controller: controller,);
+            return RecipeListScreen(controller: controller);
           case CartScreen.route:
-            return CartScreen();
+            return CartScreen(CartController());
           default:
             return HomeScreen();
         }
