@@ -4,7 +4,6 @@ import 'package:tasty_recipe/Services/DAO.dart';
 import 'package:tasty_recipe/Utils/DataNotFoundException.dart';
 
 class RecipeStepDAO extends DAO<RecipeStep> {
-  
   Future<List<RecipeStep>> getAllRecipeStepById(String recipeId) async {
     if (recipeId.isEmpty) {
       throw ArgumentError("Invalid input.");
@@ -16,7 +15,10 @@ class RecipeStepDAO extends DAO<RecipeStep> {
         .get();
 
     if (querySnapshot.docs.isEmpty) {
-      throw DataNotFoundException("No steps found for that recipe!", StackTrace.current);
+      throw DataNotFoundException(
+        "No steps found for that recipe!",
+        StackTrace.current,
+      );
     } else {
       return querySnapshot.docs.map((doc) {
         final docData = doc.data();
@@ -69,6 +71,12 @@ class RecipeStepDAO extends DAO<RecipeStep> {
   @override
   Future<String> getId(RecipeStep item) {
     // TODO: implement getId
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<bool> exists(RecipeStep item) {
+    // TODO: implement exists
     throw UnimplementedError();
   }
 }

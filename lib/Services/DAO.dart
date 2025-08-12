@@ -8,4 +8,6 @@ abstract class DAO<T> {
   Future<String> getId(T item);
 
   Future<List<T>> getAll();
+
+  Future<bool> exists(T item);
 }

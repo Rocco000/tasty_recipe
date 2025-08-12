@@ -55,7 +55,10 @@ class RecipeIngredientDAO extends DAO<RecipeIngredient> {
         .get();
 
     if (querySnapshot.docs.isEmpty) {
-      throw DataNotFoundException("No recipe ingredient found!", StackTrace.current);
+      throw DataNotFoundException(
+        "No recipe ingredient found!",
+        StackTrace.current,
+      );
     } else {
       return querySnapshot.docs.map((doc) {
         final docData = doc.data();
@@ -67,5 +70,11 @@ class RecipeIngredientDAO extends DAO<RecipeIngredient> {
         );
       }).toList();
     }
+  }
+
+  @override
+  Future<bool> exists(RecipeIngredient item) {
+    // TODO: implement exists
+    throw UnimplementedError();
   }
 }

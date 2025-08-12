@@ -4,27 +4,41 @@ import 'package:tasty_recipe/Services/DAO.dart';
 import 'package:tasty_recipe/Utils/DataNotFoundException.dart';
 
 class IngredientDAO extends DAO<Ingredient> {
-
-  Future<Ingredient> getIngredientById(String id) async{
-    if(id.isEmpty){
+  Future<Ingredient> getIngredientById(String id) async {
+    if (id.isEmpty) {
       throw ArgumentError("Invalid input.");
     }
 
-    final querySnapshot = await FirebaseFirestore.instance.collection("Ingredient").doc(id).get();
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection("Ingredient")
+        .doc(id)
+        .get();
 
-    if (querySnapshot.exists){
+    if (querySnapshot.exists) {
       final docData = querySnapshot.data();
 
-      if (docData != null){
+      if (docData != null) {
         return Ingredient(querySnapshot.id, docData["name"]);
-      }
-      else{
+      } else {
         throw Exception("Something went wrong!");
       }
-    }
-    else{
+    } else {
       throw DataNotFoundException("Ingredient not found", StackTrace.current);
     }
+  }
+
+  @override
+  Future<bool> exists(Ingredient item) async {
+    if (item == null) {
+      throw ArgumentError("Invalid input.");
+    }
+
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection("Ingredient")
+        .doc(item.id)
+        .get();
+
+    return querySnapshot.exists;
   }
 
   @override
