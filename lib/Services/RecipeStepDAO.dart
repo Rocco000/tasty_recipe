@@ -34,9 +34,53 @@ class RecipeStepDAO extends DAO<RecipeStep> {
   }
 
   @override
-  Future<void> delete(RecipeStep item) {
-    // TODO: implement delete
-    throw UnimplementedError();
+  Future<void> delete(RecipeStep item) async {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection("RecipeStep")
+        .where("recipeId", isEqualTo: item.recipeId)
+        .where("stepOrder", isEqualTo: item.stepOrder)
+        .get();
+
+    if (querySnapshot.docs.isEmpty) {
+      throw DataNotFoundException(
+        "The input step doesn't exist",
+        StackTrace.current,
+      );
+    }
+
+    try {
+      final String id = querySnapshot.docs.first.id;
+
+      await FirebaseFirestore.instance
+          .collection("RecipeStep")
+          .doc(id)
+          .delete();
+    } on FirebaseException catch (e, st) {
+      throw Exception("Failed to delete the input step");
+    } catch (e, st) {
+      throw Exception("Unexpected error while deleting the input step");
+    }
+  }
+
+  Future<void> deleteByRecipeId(String recipeId, WriteBatch batch) async {
+    // 1) Get all related steps
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection("RecipeStep")
+        .where("recipeId", isEqualTo: recipeId)
+        .get();
+
+    if (querySnapshot.docs.isEmpty) {
+      throw DataNotFoundException(
+        "No steps found for this recipe ID",
+        StackTrace.current,
+      );
+    }
+
+    // 2) Add delete operations to the transaction
+    for (var doc in querySnapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    return;
   }
 
   @override

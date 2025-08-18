@@ -6,23 +6,25 @@ import 'package:tasty_recipe/Services/DAO.dart';
 import 'package:tasty_recipe/Utils/DataNotFoundException.dart';
 
 class RecipeDAO extends DAO<Recipe> {
-
-  Future<Recipe> getRecipeById(String id) async{
+  Future<Recipe> getRecipeById(String id) async {
     if (id.isEmpty) {
       throw ArgumentError("Invalid input.");
     }
 
-    final querySnapshot = await FirebaseFirestore.instance.collection("Recipe").doc(id).get();
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection("Recipe")
+        .doc(id)
+        .get();
 
-    if (querySnapshot.exists){
+    if (querySnapshot.exists) {
       final docData = querySnapshot.data();
 
-      if (docData != null){
+      if (docData != null) {
         return Recipe(
-          null, 
+          null,
           querySnapshot.id,
           docData["name"] as String,
-          docData["difficulty"] as  int,
+          docData["difficulty"] as int,
           docData["duration"] as int,
           docData["servings"] as int,
           docData["category"] as String,
@@ -30,20 +32,40 @@ class RecipeDAO extends DAO<Recipe> {
           docData["favorite"] as bool,
           docData["userId"] as String,
         );
-      }
-      else{
+      } else {
         throw Exception("Something went wrong!");
       }
-    }
-    else{
+    } else {
       throw DataNotFoundException("Recipe not found!", StackTrace.current);
     }
   }
 
   @override
-  Future<void> delete(Recipe item) {
-    // TODO: implement delete
-    throw UnimplementedError();
+  Future<void> delete(Recipe item) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection("Recipe")
+          .doc(item.id)
+          .delete();
+    } on FirebaseException catch (e, st) {
+      if (e.code == "not-found") {
+        throw DataNotFoundException("Recipe doesn't exist", st);
+      }
+
+      throw Exception("Failed to delete the recipe");
+    } catch (e, st) {
+      throw Exception("Unexpected error while deleting the recipe");
+    }
+  }
+
+  Future<void> deleteByRecipeId(String recipeId, WriteBatch batch) async {
+    //1) Get document reference
+    final docRef = FirebaseFirestore.instance
+        .collection("Recipe")
+        .doc(recipeId);
+
+    //2) Add delete operation to the transaction
+    batch.delete(docRef);
   }
 
   @override
@@ -78,8 +100,11 @@ class RecipeDAO extends DAO<Recipe> {
     }).toList();
   }
 
-  Future<List<Recipe>> getFavoriteRecipes() async{
-    final querySnapshot = await FirebaseFirestore.instance.collection("Recipe").where("favorite", isEqualTo: true).get();
+  Future<List<Recipe>> getFavoriteRecipes() async {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection("Recipe")
+        .where("favorite", isEqualTo: true)
+        .get();
 
     return querySnapshot.docs.map((doc) {
       final itemData = doc.data();
@@ -129,5 +154,28 @@ class RecipeDAO extends DAO<Recipe> {
   Future<String> getId(Recipe item) {
     // TODO: implement getId
     throw UnimplementedError();
+  }
+
+  @override
+  Future<bool> exists(Recipe item) {
+    // TODO: implement exists
+    throw UnimplementedError();
+  }
+
+  Future<void> updateFavoriteState(Recipe recipe, bool newFavoriteState) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection("Recipe")
+          .doc(recipe.id)
+          .update({"favorite": newFavoriteState});
+    } on FirebaseException catch (e, st) {
+      if (e.code == "not-found") {
+        throw DataNotFoundException("Recipe doesn't exist", st);
+      }
+
+      throw Exception("Failed to update favorite state");
+    } catch (e, st) {
+      throw Exception("Unexpected error while updating favorite state");
+    }
   }
 }

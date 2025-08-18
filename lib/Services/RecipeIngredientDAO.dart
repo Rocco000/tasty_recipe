@@ -5,9 +5,55 @@ import 'package:tasty_recipe/Utils/DataNotFoundException.dart';
 
 class RecipeIngredientDAO extends DAO<RecipeIngredient> {
   @override
-  Future<void> delete(RecipeIngredient item) {
-    // TODO: implement delete
-    throw UnimplementedError();
+  Future<void> delete(RecipeIngredient item) async {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection("RecipeIngredient")
+        .where("recipeId", isEqualTo: item.recipeId)
+        .where("ingredientId", isEqualTo: item.ingredientId)
+        .get();
+
+    if (querySnapshot.docs.isEmpty) {
+      throw DataNotFoundException(
+        "The RecipeIngredient input doesn't exist",
+        StackTrace.current,
+      );
+    }
+
+    try {
+      final String id = querySnapshot.docs.first.id;
+
+      await FirebaseFirestore.instance
+          .collection("RecipeIngredient")
+          .doc(id)
+          .delete();
+    } on FirebaseException catch (e, st) {
+      throw Exception("Failed to delete the RecipeIngredient entry");
+    } catch (e, st) {
+      throw Exception(
+        "Unexpected error while deleting the RecipeIngredient entry",
+      );
+    }
+  }
+
+  Future<void> deleteByRecipeId(String recipeId, WriteBatch batch) async {
+    // 1) Get all related ingredients
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection("RecipeIngredient")
+        .where("recipeId", isEqualTo: recipeId)
+        .get();
+
+    if (querySnapshot.docs.isEmpty) {
+      throw DataNotFoundException(
+        "No ingredients found for this recipe ID",
+        StackTrace.current,
+      );
+    }
+
+    // 2) Add the delete operations to the transaction
+    for (var doc in querySnapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    return;
   }
 
   @override
