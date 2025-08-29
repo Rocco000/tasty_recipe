@@ -62,8 +62,6 @@ class CartItemDAO extends DAO<CartItem> {
       return CartItem(
         "prova@gmail.com",
         itemData["ingredientId"] as String,
-        0,
-        "gr",
         false,
       );
     }).toList();

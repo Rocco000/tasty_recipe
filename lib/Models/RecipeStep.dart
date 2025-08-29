@@ -1,4 +1,6 @@
-class RecipeStep {
+import 'package:tasty_recipe/Models/Entity.dart';
+
+class RecipeStep implements Entity {
   String _recipeId;
   int _stepOrder;
   String _description;
@@ -14,6 +16,17 @@ class RecipeStep {
     this._duration,
     this._durationUnit,
   );
+
+  /// Factory method to build an entity from Firestore JSON
+  factory RecipeStep.fromJson(Map<String, dynamic> json) {
+    return RecipeStep(
+      json["recipeId"] as String,
+      json["stepOrder"] as int,
+      json["description"] as String,
+      json["duration"] as double,
+      json["durationUnit"] as String,
+    );
+  }
 
   static String getUnitMeasurementSymbol(String unit) {
     if (!timeUnits.contains(unit)) throw Exception("Invalid input!");
@@ -44,4 +57,20 @@ class RecipeStep {
   String? get durationUnit => _durationUnit;
 
   set durationUnit(String? newDurationUnit) => _durationUnit = newDurationUnit;
+
+  @override
+  Map<String, dynamic> toJson() {
+    Map<String, dynamic> jsonObject = {
+      "recipeId": recipeId,
+      "stepOrder": stepOrder,
+      "description": description,
+    };
+
+    if (duration != null) {
+      jsonObject["duration"] = duration!;
+      jsonObject["durationUnit"] = durationUnit!;
+    }
+
+    return jsonObject;
+  }
 }

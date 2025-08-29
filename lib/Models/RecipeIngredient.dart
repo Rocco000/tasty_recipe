@@ -1,4 +1,6 @@
-class RecipeIngredient {
+import 'package:tasty_recipe/Models/Entity.dart';
+
+class RecipeIngredient implements Entity {
   String _recipeId;
   String _ingredientId;
   double _quantity;
@@ -23,6 +25,16 @@ class RecipeIngredient {
     this._unitMeasurement,
   );
 
+  /// Factory method to build an entity from Firestore JSON
+  factory RecipeIngredient.fromJson(Map<String, dynamic> json) {
+    return RecipeIngredient(
+      json["recipeId"] as String,
+      json["ingredientId"] as String,
+      json["quantiy"] as double,
+      json["unitMeasurement"] as String,
+    );
+  }
+
   String get recipeId => _recipeId;
 
   set recipeId(String newRecipeId) => _recipeId = newRecipeId;
@@ -38,4 +50,14 @@ class RecipeIngredient {
   String get unitMeasurement => _unitMeasurement;
 
   set unitMeasurement(String newUnit) => _unitMeasurement = newUnit;
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      "recipeId": recipeId,
+      "ingredientId": ingredientId,
+      "quantity": quantity,
+      "unitMeasurement": unitMeasurement,
+    };
+  }
 }

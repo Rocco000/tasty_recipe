@@ -1,7 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:tasty_recipe/Models/Entity.dart';
 
-class Recipe {
+class Recipe implements Entity {
   String _id;
   File? _image;
   String _name;
@@ -73,6 +74,22 @@ class Recipe {
     this._userId,
   );
 
+  /// Factory method to build an entity from Firestore JSON
+  factory Recipe.fromJson(Map<String, dynamic> json) {
+    return Recipe(
+      null,
+      json["id"] as String,
+      json["name"] as String,
+      json["difficulty"] as int,
+      json["duration"] as int,
+      json["servings"] as int,
+      json["category"] as String,
+      json["tags"] as List<String>,
+      json["favorite"] as bool,
+      json["userId"] as String,
+    );
+  }
+
   static Widget getMealIcon(String mealName) {
     if (!categoryList.contains(mealName))
       throw Exception("The input meal category doesn't exist!");
@@ -89,6 +106,8 @@ class Recipe {
   }
 
   String get id => _id;
+
+  void set id(String newId) => _id = newId;
 
   File? get image => _image;
 
@@ -123,4 +142,18 @@ class Recipe {
   void changeFavoriteState() => _favorite = !_favorite;
 
   String get userId => _userId;
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      "name": name,
+      "difficulty": difficulty,
+      "duration": duration,
+      "servings": servings,
+      "category": category,
+      "tags": tags,
+      "favorite": isFavorite,
+      "userId": userId,
+    };
+  }
 }
