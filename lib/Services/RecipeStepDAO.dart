@@ -4,13 +4,19 @@ import 'package:tasty_recipe/Services/DAO.dart';
 import 'package:tasty_recipe/Utils/DataNotFoundException.dart';
 
 class RecipeStepDAO extends DAO<RecipeStep> {
+  final _collection = FirebaseFirestore.instance.collection("RecipeStep");
+
+  /// New document reference
+  DocumentReference newRef() {
+    return _collection.doc(); // auto-generates ID
+  }
+
   Future<List<RecipeStep>> getAllRecipeStepById(String recipeId) async {
     if (recipeId.isEmpty) {
       throw ArgumentError("Invalid input.");
     }
 
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection("RecipeStep")
+    final querySnapshot = await _collection
         .where("recipeId", isEqualTo: recipeId)
         .get();
 
@@ -35,8 +41,7 @@ class RecipeStepDAO extends DAO<RecipeStep> {
 
   @override
   Future<void> delete(RecipeStep item) async {
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection("RecipeStep")
+    final querySnapshot = await _collection
         .where("recipeId", isEqualTo: item.recipeId)
         .where("stepOrder", isEqualTo: item.stepOrder)
         .get();
@@ -51,10 +56,7 @@ class RecipeStepDAO extends DAO<RecipeStep> {
     try {
       final String id = querySnapshot.docs.first.id;
 
-      await FirebaseFirestore.instance
-          .collection("RecipeStep")
-          .doc(id)
-          .delete();
+      await _collection.doc(id).delete();
     } on FirebaseException catch (e, st) {
       throw Exception("Failed to delete the input step");
     } catch (e, st) {
@@ -64,8 +66,7 @@ class RecipeStepDAO extends DAO<RecipeStep> {
 
   Future<void> deleteByRecipeId(String recipeId, WriteBatch batch) async {
     // 1) Get all related steps
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection("RecipeStep")
+    final querySnapshot = await _collection
         .where("recipeId", isEqualTo: recipeId)
         .get();
 
@@ -99,17 +100,23 @@ class RecipeStepDAO extends DAO<RecipeStep> {
   Future<String> save(RecipeStep newItem) async {
     if (newItem == null) throw ArgumentError("Invalid input");
 
-    final newRecipeStepRef = await FirebaseFirestore.instance
-        .collection("RecipeStep")
-        .add({
-          "recipeId": newItem.recipeId,
-          "stepOrder": newItem.stepOrder,
-          "description": newItem.description,
-          "duration": newItem.duration,
-          "durationUnit": newItem.durationUnit,
-        });
+    final newRecipeStepRef = await _collection.add({
+      "recipeId": newItem.recipeId,
+      "stepOrder": newItem.stepOrder,
+      "description": newItem.description,
+      "duration": newItem.duration,
+      "durationUnit": newItem.durationUnit,
+    });
 
     return newRecipeStepRef.id;
+  }
+
+  void saveWithBatch(
+    DocumentReference ref,
+    RecipeStep newStep,
+    WriteBatch batch,
+  ) {
+    batch.set(ref, newStep.toJson());
   }
 
   @override

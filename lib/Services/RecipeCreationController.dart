@@ -7,19 +7,20 @@ import 'package:tasty_recipe/Models/RecipeStep.dart';
 import 'package:tasty_recipe/Services/IngredientDAO.dart';
 import 'package:tasty_recipe/Services/RecipeDAO.dart';
 import 'package:tasty_recipe/Services/RecipeIngredientDAO.dart';
+import 'package:tasty_recipe/Services/RecipeService.dart';
 import 'package:tasty_recipe/Services/RecipeStepDAO.dart';
+import 'package:tasty_recipe/Utils/DatabaseOperationException.dart';
 import 'package:tasty_recipe/Utils/InvalidFieldException.dart';
+import 'package:tasty_recipe/Utils/UnknownDatabaseException.dart';
+import 'package:tasty_recipe/Utils/ValidationException.dart';
 
 class RecipeCreationController extends ChangeNotifier {
-  final RecipeDAO _recipeDAO = RecipeDAO();
-  final RecipeIngredientDAO _recipeIngredientDAO = RecipeIngredientDAO();
-  final RecipeStepDAO _recipeStepDAO = RecipeStepDAO();
-  final IngredientDAO _ingredientDAO = IngredientDAO();
-
-  Recipe? _recipe;
+  late Recipe _recipe;
   List<Ingredient> _ingredientList = [];
   List<RecipeStep> _recipeStepList = [];
   List<RecipeIngredient> _recipeIngredientList = [];
+
+  RecipeService _service = RecipeService();
 
   /// Temporarly store the recipe general info
   /// - [recipeName]: the recipe name.
@@ -89,7 +90,7 @@ class RecipeCreationController extends ChangeNotifier {
       category,
       (tags.isNotEmpty) ? tags : [],
       false,
-      "prova!!!!!",
+      "prova",
     );
     print(
       "Name: ${_recipe!.name}, Difficulty: ${_recipe!.difficulty}, Duration: ${_recipe!.duration}, Servings: ${_recipe!.servings}, Category: ${_recipe!.category}, Tags: ${_recipe!.tags}",
@@ -98,7 +99,7 @@ class RecipeCreationController extends ChangeNotifier {
 
   /// Clear the temporary recipe general info stored in Recipe object
   void clearRecipe() {
-    _recipe = null;
+    // _recipe = null;
   }
 
   /// Temporarly store an ingredient and its corresponding quantity for that recipe
@@ -212,80 +213,35 @@ class RecipeCreationController extends ChangeNotifier {
   }
 
   /// Create a new recipe in the DB
-  Future<void> createNewRecipe() async {
-    // Check whether the temporary data is properly stored
-    if (_recipe == null ||
-        _ingredientList.isEmpty ||
-        _recipeIngredientList.isEmpty ||
-        _recipeStepList.isEmpty) {
-      clearSteps();
-      throw Exception("Something went wrong. Try again");
-    }
-
-    // Check whether the total step duration match the recipe duration
-    double totalStepDuration = 0.0;
-
-    _recipeStepList.forEach((step) {
-      if (step.duration != null) {
-        double stepDuration = (step.durationUnit! == "hour")
-            ? step.duration! * 60
-            : (step.durationUnit! == "minute")
-            ? step.duration!
-            : step.duration! / 60;
-
-        totalStepDuration += stepDuration;
-      }
-    });
-
-    if (_recipe!.duration != totalStepDuration.toInt()) {
-      clearSteps();
-      throw Exception("Total step duration doesn't match recipe duration");
-    }
-
+  Future<(bool, String)> createNewRecipe() async {
     try {
-      // 1) Store the new recipe
-      String recipeId = await _recipeDAO.save(_recipe!);
+      await _service.createRecipe(
+        _recipe,
+        _ingredientList,
+        _recipeIngredientList,
+        _recipeStepList,
+      );
 
-      // 2.1) Get the ingredient ID or eventually create a new one
-      for (int i = 0; i < _ingredientList.length; i++) {
-        String ingredientId;
-        try {
-          // Get the ID of an EXISTING ingredient
-          ingredientId = await _ingredientDAO.getId(_ingredientList[i]);
-        } on Exception catch (e) {
-          // Crete a NEW ingredient
-          ingredientId = await _ingredientDAO.save(_ingredientList[i]);
-        }
-
-        // 2.2) Update the RecipeIngredient keys
-        _recipeIngredientList[i].recipeId = recipeId;
-        _recipeIngredientList[i].ingredientId = ingredientId;
-
-        // 2.3)  Store the RecipeIngredient items
-        _recipeIngredientDAO.save(_recipeIngredientList[i]);
-      }
-
-      // 3) Store recipe steps
-      for (RecipeStep step in _recipeStepList) {
-        // Update foreign key
-        step.recipeId = recipeId;
-        _recipeStepDAO.save(step);
-      }
+      clear();
+      notifyListeners();
+      return (true, "Successfully stored the new recipe!");
     } on ArgumentError catch (e) {
       clearSteps();
-      throw Exception("Provide a valid input");
-    } on FirebaseException catch (e) {
+      return (false, "Invalid input. Try again.");
+    } on ValidationException catch (e) {
+      // Total step duration != Recipe duration
       clearSteps();
-      throw Exception("Something went wrong. Try again.");
+      return (false, e.message);
+    } on DatabaseOperationException catch (e) {
+      return (false, "Something went wrong. Try again.");
+    } on UnknownDatabaseException catch (e) {
+      return (false, "Something went wrong. Try again.");
     }
-
-    print("Stored all data!");
-    notifyListeners();
   }
 
   /// Clear all temporary data
   void clear() {
-    _recipe = null;
+    //_recipe = null;
     _ingredientList.clear();
     _recipeIngredientList.clear();
     _recipeStepList.clear();

@@ -29,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _generateCategoryCard(int index) {
     String category = _backgroundImgs.keys.elementAt(index);
     late final RecipeListController controller;
-    switch(category){
+    switch (category) {
       case "Breakfast":
         controller = RecipeListController(RecipeFilter.breakfast());
       case "First course":
@@ -47,7 +47,11 @@ class _HomeScreenState extends State<HomeScreen> {
         label: category,
         background: _backgroundImgs[category]!,
         onTap: () {
-          Navigator.pushNamed(context, RecipeListScreen.route, arguments: controller);
+          Navigator.pushNamed(
+            context,
+            RecipeListScreen.route,
+            arguments: controller,
+          );
         },
       ),
     );
@@ -55,6 +59,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final arguments =
+        (ModalRoute.of(context)?.settings.arguments ?? <String, String>{})
+            as Map;
+
+    if (arguments.isNotEmpty && arguments["message"] != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(arguments["message"]),
+          backgroundColor: Colors.black45,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating, // Makes it float over the UI
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    }
+
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(

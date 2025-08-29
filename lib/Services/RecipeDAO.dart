@@ -4,17 +4,23 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:tasty_recipe/Models/Recipe.dart';
 import 'package:tasty_recipe/Services/DAO.dart';
 import 'package:tasty_recipe/Utils/DataNotFoundException.dart';
+import 'package:tasty_recipe/Utils/DatabaseOperationException.dart';
+import 'package:tasty_recipe/Utils/UnknownDatabaseException.dart';
 
 class RecipeDAO extends DAO<Recipe> {
+  final _collection = FirebaseFirestore.instance.collection("Recipe");
+
+  /// New document reference
+  DocumentReference newRef() {
+    return _collection.doc(); // auto-generates ID
+  }
+
   Future<Recipe> getRecipeById(String id) async {
     if (id.isEmpty) {
       throw ArgumentError("Invalid input.");
     }
 
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection("Recipe")
-        .doc(id)
-        .get();
+    final querySnapshot = await _collection.doc(id).get();
 
     if (querySnapshot.exists) {
       final docData = querySnapshot.data();
@@ -43,10 +49,7 @@ class RecipeDAO extends DAO<Recipe> {
   @override
   Future<void> delete(Recipe item) async {
     try {
-      await FirebaseFirestore.instance
-          .collection("Recipe")
-          .doc(item.id)
-          .delete();
+      await _collection.doc(item.id).delete();
     } on FirebaseException catch (e, st) {
       if (e.code == "not-found") {
         throw DataNotFoundException("Recipe doesn't exist", st);
@@ -60,9 +63,7 @@ class RecipeDAO extends DAO<Recipe> {
 
   Future<void> deleteByRecipeId(String recipeId, WriteBatch batch) async {
     //1) Get document reference
-    final docRef = FirebaseFirestore.instance
-        .collection("Recipe")
-        .doc(recipeId);
+    final docRef = _collection.doc(recipeId);
 
     //2) Add delete operation to the transaction
     batch.delete(docRef);
@@ -78,8 +79,7 @@ class RecipeDAO extends DAO<Recipe> {
     if (categoryName.isEmpty)
       throw ArgumentError("Invalid input. The parameter can't be null");
 
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection("Recipe")
+    final querySnapshot = await _collection
         .where("category", isEqualTo: categoryName)
         .get();
 
@@ -134,20 +134,33 @@ class RecipeDAO extends DAO<Recipe> {
     if (newItem == null)
       throw ArgumentError("Invalid input. The parameter can't be null");
 
-    final newRecipeRef = await FirebaseFirestore.instance
-        .collection("Recipe")
-        .add({
-          "name": newItem.name,
-          "difficulty": newItem.difficulty,
-          "duration": newItem.duration,
-          "servings": newItem.servings,
-          "category": newItem.category,
-          "tags": newItem.tags,
-          "favorite": false,
-          "userId": "prova", //FirebaseAuth.instance.currentUser!.uid
-        });
+    try {
+      final newRecipeRef = await FirebaseFirestore.instance
+          .collection("Recipe")
+          .add({
+            "name": newItem.name,
+            "difficulty": newItem.difficulty,
+            "duration": newItem.duration,
+            "servings": newItem.servings,
+            "category": newItem.category,
+            "tags": newItem.tags,
+            "favorite": false,
+            "userId": "prova", //FirebaseAuth.instance.currentUser!.uid
+          });
 
-    return newRecipeRef.id;
+      return newRecipeRef.id;
+    } on FirebaseException catch (e, st) {
+      throw DatabaseOperationException("Failed to create a new recipe", st);
+    } catch (e, st) {
+      throw UnknownDatabaseException(
+        "Unexpected error while saving new recipe",
+        st,
+      );
+    }
+  }
+
+  void saveWithBatch(DocumentReference ref, Recipe newItem, WriteBatch batch) {
+    batch.set(ref, newItem.toJson());
   }
 
   @override
@@ -173,9 +186,12 @@ class RecipeDAO extends DAO<Recipe> {
         throw DataNotFoundException("Recipe doesn't exist", st);
       }
 
-      throw Exception("Failed to update favorite state");
+      throw DatabaseOperationException("Failed to update favorite state", st);
     } catch (e, st) {
-      throw Exception("Unexpected error while updating favorite state");
+      throw UnknownDatabaseException(
+        "Unexpected error while updating favorite state",
+        st,
+      );
     }
   }
 }

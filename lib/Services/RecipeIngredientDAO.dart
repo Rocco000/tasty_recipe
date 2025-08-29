@@ -4,10 +4,16 @@ import 'package:tasty_recipe/Services/DAO.dart';
 import 'package:tasty_recipe/Utils/DataNotFoundException.dart';
 
 class RecipeIngredientDAO extends DAO<RecipeIngredient> {
+  final _collection = FirebaseFirestore.instance.collection("RecipeIngredient");
+
+  /// New document reference
+  DocumentReference newRef() {
+    return _collection.doc(); // auto-generates ID
+  }
+
   @override
   Future<void> delete(RecipeIngredient item) async {
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection("RecipeIngredient")
+    final querySnapshot = await _collection
         .where("recipeId", isEqualTo: item.recipeId)
         .where("ingredientId", isEqualTo: item.ingredientId)
         .get();
@@ -22,10 +28,7 @@ class RecipeIngredientDAO extends DAO<RecipeIngredient> {
     try {
       final String id = querySnapshot.docs.first.id;
 
-      await FirebaseFirestore.instance
-          .collection("RecipeIngredient")
-          .doc(id)
-          .delete();
+      await _collection.doc(id).delete();
     } on FirebaseException catch (e, st) {
       throw Exception("Failed to delete the RecipeIngredient entry");
     } catch (e, st) {
@@ -37,8 +40,7 @@ class RecipeIngredientDAO extends DAO<RecipeIngredient> {
 
   Future<void> deleteByRecipeId(String recipeId, WriteBatch batch) async {
     // 1) Get all related ingredients
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection("RecipeIngredient")
+    final querySnapshot = await _collection
         .where("recipeId", isEqualTo: recipeId)
         .get();
 
@@ -72,16 +74,22 @@ class RecipeIngredientDAO extends DAO<RecipeIngredient> {
   Future<String> save(RecipeIngredient newItem) async {
     if (newItem == null) throw ArgumentError("Invalid input");
 
-    final newRecipeIngredientRef = await FirebaseFirestore.instance
-        .collection("RecipeIngredient")
-        .add({
-          "ingredientId": newItem.ingredientId,
-          "recipeId": newItem.recipeId,
-          "quantity": newItem.quantity,
-          "unitMeasurement": newItem.unitMeasurement,
-        });
+    final newRecipeIngredientRef = await _collection.add({
+      "ingredientId": newItem.ingredientId,
+      "recipeId": newItem.recipeId,
+      "quantity": newItem.quantity,
+      "unitMeasurement": newItem.unitMeasurement,
+    });
 
     return newRecipeIngredientRef.id;
+  }
+
+  void saveWithBatch(
+    DocumentReference ref,
+    RecipeIngredient item,
+    WriteBatch batch,
+  ) {
+    batch.set(ref, item.toJson());
   }
 
   @override
@@ -95,8 +103,7 @@ class RecipeIngredientDAO extends DAO<RecipeIngredient> {
   ) async {
     if (recipeId.isEmpty) throw ArgumentError("Invalid input.");
 
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection("RecipeIngredient")
+    final querySnapshot = await _collection
         .where("recipeId", isEqualTo: recipeId)
         .get();
 

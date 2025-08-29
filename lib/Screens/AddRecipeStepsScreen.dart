@@ -79,6 +79,7 @@ class _AddRecipeStepsScreenState extends State<AddRecipeStepsScreen> {
       // Disable save button
       setState(() {
         _isSaving = !_isSaving;
+        _durationErrorFlag = false;
       });
 
       // Get form state
@@ -126,20 +127,22 @@ class _AddRecipeStepsScreenState extends State<AddRecipeStepsScreen> {
         }
       }
 
-      try {
-        // Store data
-        await controller.createNewRecipe();
+      // Store data
+      final (result, msg) = await controller.createNewRecipe();
 
+      if (result) {
         // Get the root Navigator instance and move on HomeScreen
         Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
           HomeScreen.route,
           (route) => false,
-          arguments: "Successfully stored a new recipe!",
+          arguments: {"message": msg},
         );
-      } on Exception catch (e) {
+      } else {
         setState(() {
-          // Show error message
-          _durationErrorFlag = true;
+          if (!msg.contains("Something")) {
+            // Highlight the time field if the error is not a DB Exception
+            _durationErrorFlag = true;
+          }
 
           // Active save button
           _isSaving = !_isSaving;
@@ -147,7 +150,7 @@ class _AddRecipeStepsScreenState extends State<AddRecipeStepsScreen> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("$e"),
+            content: Text(msg),
             backgroundColor: Colors.black45,
             duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating, // Makes it float over the UI
@@ -223,10 +226,12 @@ class _AddRecipeStepsScreenState extends State<AddRecipeStepsScreen> {
                   padding: const EdgeInsets.all(12.0),
                   child: DottedButtonWidget(
                     onTap: () {
-                      setState(() {
-                        _numStepFields += 1;
-                        _stepIds.add(DateTime.now().millisecondsSinceEpoch);
-                      });
+                      if (!_isSaving) {
+                        setState(() {
+                          _numStepFields += 1;
+                          _stepIds.add(DateTime.now().millisecondsSinceEpoch);
+                        });
+                      }
                     },
                     child: Column(
                       children: const <Widget>[
@@ -246,7 +251,9 @@ class _AddRecipeStepsScreenState extends State<AddRecipeStepsScreen> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10.0),
                   child: ElevatedButton(
-                    onPressed: () => _onSavePressed(controller),
+                    onPressed: (_isSaving)
+                        ? null
+                        : () => _onSavePressed(controller),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blueAccent,
                       foregroundColor: Colors.white,
