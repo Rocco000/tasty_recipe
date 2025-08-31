@@ -58,25 +58,34 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  void didChangeDependencies() {
+    // runs after initState, and whenever a dependency changes
+    super.didChangeDependencies();
     final arguments =
         (ModalRoute.of(context)?.settings.arguments ?? <String, String>{})
-            as Map;
+            as Map<String, String>;
 
-    if (arguments.isNotEmpty && arguments["message"] != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(arguments["message"]),
-          backgroundColor: Colors.black45,
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating, // Makes it float over the UI
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+    // Show a SnackBar if a message is available
+    if (arguments.isNotEmpty && arguments["msg"] != null) {
+      // That callback is scheduled to run after the current build frame is fully completed
+      WidgetsBinding.instance.addPostFrameCallback((duration) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(arguments["msg"]!),
+            backgroundColor: Colors.black45,
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating, // Makes it float over the UI
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
-        ),
-      );
+        );
+      });
     }
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(

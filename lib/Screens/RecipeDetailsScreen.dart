@@ -6,6 +6,7 @@ import 'package:tasty_recipe/Models/Recipe.dart';
 import 'package:tasty_recipe/Screens/EditRecipeScreen.dart';
 import 'package:tasty_recipe/Screens/HomeScreen.dart';
 import 'package:tasty_recipe/Services/RecipeDetailsController.dart';
+import 'package:tasty_recipe/Utils/RecipeDetailsResult.dart';
 import 'package:tasty_recipe/Widgets/RecipeIngredientWidget.dart';
 import 'package:tasty_recipe/Widgets/RecipeStepWidget.dart';
 
@@ -23,10 +24,7 @@ class RecipeDetailsScreen extends StatefulWidget {
 class _RecipeDetailsScreenState extends State<RecipeDetailsScreen> {
   late Recipe _recipe;
 
-  late final Future<
-    (Recipe, List<RecipeIngredient>, List<Ingredient>, List<RecipeStep>)
-  >
-  _futureData;
+  late final Future<RecipeDetailsResult> _futureData;
 
   @override
   void initState() {
@@ -351,12 +349,18 @@ class _RecipeDetailsScreenState extends State<RecipeDetailsScreen> {
   }
 
   Widget _generateErrorMessage(Object error) {
-    String msg = error.toString();
-    final index = msg.indexOf(":");
-    if (index != -1 && index < msg.length - 1) {
-      msg = msg.substring(index + 1).trim();
+    String msg = "";
+
+    if (error is String) {
+      msg = error;
     } else {
-      msg = "Something went wrong. Try again";
+      error = error.toString();
+      final index = msg.indexOf(":");
+      if (index != -1 && index < msg.length - 1) {
+        msg = msg.substring(index + 1).trim();
+      } else {
+        msg = "Something went wrong. Try again";
+      }
     }
 
     return Center(
@@ -404,155 +408,158 @@ class _RecipeDetailsScreenState extends State<RecipeDetailsScreen> {
         ),
 
         body: SingleChildScrollView(
-          child:
-              FutureBuilder<
-                (
-                  Recipe,
-                  List<RecipeIngredient>,
-                  List<Ingredient>,
-                  List<RecipeStep>,
-                )
-              >(
-                future: _futureData,
-                builder: (context, snapshot) {
-                  print("Recipe id: ${widget._recipeId}");
+          child: FutureBuilder<RecipeDetailsResult>(
+            future: _futureData,
+            builder: (context, snapshot) {
+              // Show loading spinner while waiting
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Container(
+                  alignment: Alignment.center,
+                  color: Colors.white,
+                  child: SizedBox(
+                    width: 50,
+                    height: 50,
+                    child: const CircularProgressIndicator(
+                      color: Colors.orange,
+                    ),
+                  ),
+                );
+              }
 
-                  // Show loading spinner while waiting
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Container(
-                      alignment: Alignment.center,
-                      color: Colors.white,
-                      child: SizedBox(
-                        width: 50,
-                        height: 50,
-                        child: const CircularProgressIndicator(
-                          color: Colors.orange,
-                        ),
-                      ),
-                    );
-                  }
+              // Show error message if something went wrong
+              if (snapshot.hasError) {
+                return _generateErrorMessage(snapshot.error!);
+              }
 
-                  // Show error message if something went wrong
-                  if (snapshot.hasError) {
-                    return _generateErrorMessage(snapshot.error!);
-                  }
+              if (!snapshot.hasData) {
+                // Something wrong, unusual
+                return _generateErrorMessage(
+                  "Something went wrong. Try again.",
+                );
+              }
 
-                  if (!snapshot.hasData) {
-                    // Something wrong, unusual
-                    return _generateErrorMessage(
-                      "Something went wrong. Try again.",
-                    );
-                  }
+              // Show data when data is ready
+              final result = snapshot.data!;
 
-                  // Show data when data is ready
-                  final (
-                    recipe,
-                    recipeIngredientList,
-                    ingredientList,
-                    stepList,
-                  ) = snapshot.data!;
+              if (result is RecipeDetailsError) {
+                return _generateErrorMessage(result.message);
+              }
 
-                  _recipe = recipe;
+              final successResult = result as RecipeDetailsSuccess;
+              _recipe = successResult.recipe;
+              final List<RecipeIngredient> recipeIngredientList =
+                  successResult.recipeIngredients;
 
-                  return Column(
-                    children: <Widget>[
-                      // RECIPE GENERAL INFO
-                      ..._showRecipeGeneralInfo(_recipe),
+              final List<Ingredient> ingredientList = successResult.ingredients;
+              final List<RecipeStep> stepList = successResult.steps;
 
-                      // INGREDIENTS
-                      ..._showIngredients(recipeIngredientList, ingredientList),
+              return Column(
+                children: <Widget>[
+                  // RECIPE GENERAL INFO
+                  ..._showRecipeGeneralInfo(_recipe),
 
-                      // STEPS
-                      ..._showSteps(stepList),
+                  // INGREDIENTS
+                  ..._showIngredients(recipeIngredientList, ingredientList),
 
-                      // BUTTONS
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          spacing: 10,
-                          children: <Widget>[
-                            // DELETE BUTTON
-                            ElevatedButton.icon(
-                              onPressed: () async {
-                                final bool result = await widget._controller
-                                    .deleteRecipe(_recipe);
+                  // STEPS
+                  ..._showSteps(stepList),
 
-                                if (!result) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: const Text(
-                                        "Something went wrong. Try again",
-                                      ),
-                                      backgroundColor: const Color(0xFFE63946),
-                                      duration: const Duration(seconds: 2),
-                                      behavior: SnackBarBehavior
-                                          .floating, // Makes it float over the UI
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                    ),
-                                  );
-                                  return;
-                                }
+                  // BUTTONS
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      spacing: 10,
+                      children: <Widget>[
+                        // DELETE BUTTON
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            final bool result = await widget._controller
+                                .deleteRecipe(_recipe);
 
-                                Navigator.of(
-                                  context,
-                                  rootNavigator: true,
-                                ).pushNamedAndRemoveUntil(
-                                  HomeScreen.route,
-                                  (route) => false,
-                                  arguments: "Successfully deleted the recipe!",
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFE63946),
-                                foregroundColor: Colors.white,
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.all(
-                                    Radius.circular(8),
+                            if (!result) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text(
+                                    "Unable to delete that recipe. Try again",
+                                  ),
+                                  backgroundColor: const Color(0xFFE63946),
+                                  duration: const Duration(seconds: 2),
+                                  behavior: SnackBarBehavior
+                                      .floating, // Makes it float over the UI
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
                                   ),
                                 ),
-                              ),
-                              icon: const Icon(Icons.delete_outline),
-                              label: const Text("Delete"),
-                            ),
+                              );
+                              return;
+                            }
 
-                            // EDIT BUTTON
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.pushNamed(
-                                  context,
-                                  EditRecipeScreen.route,
-                                );
+                            Navigator.of(
+                              context,
+                              rootNavigator: true,
+                            ).pushNamedAndRemoveUntil(
+                              HomeScreen.route,
+                              (route) => false,
+                              arguments: {
+                                "msg": "Successfully deleted the recipe!",
                               },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange.shade300,
-                                foregroundColor: Colors.white,
-                                shadowColor: Colors.black,
-                                elevation: 2.0,
-                              ),
-                              child: Row(
-                                spacing: 5,
-                                children: const <Widget>[
-                                  Icon(Icons.edit_rounded),
-                                  Text(
-                                    "Edit",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ],
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE63946),
+                            foregroundColor: Colors.white,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(8),
                               ),
                             ),
-                          ],
+                          ),
+                          icon: const Icon(Icons.delete_outline),
+                          label: const Text("Delete"),
                         ),
-                      ),
-                    ],
-                  );
-                },
-              ),
+
+                        // EDIT BUTTON
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.pushNamed(
+                              context,
+                              EditRecipeScreen.route,
+                              arguments: {
+                                "recipe": successResult.recipe,
+                                "recipeIngredients": recipeIngredientList,
+                                "ingredients": ingredientList,
+                                "steps": stepList,
+                              },
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange.shade300,
+                            foregroundColor: Colors.white,
+                            shadowColor: Colors.black,
+                            elevation: 2.0,
+                          ),
+                          child: Row(
+                            spacing: 5,
+                            children: const <Widget>[
+                              Icon(Icons.edit_rounded),
+                              Text(
+                                "Edit",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
 
         floatingActionButton: FloatingActionButton(

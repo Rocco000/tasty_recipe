@@ -6,27 +6,28 @@ import 'package:tasty_recipe/Models/RecipeIngredient.dart';
 import 'package:tasty_recipe/Models/RecipeStep.dart';
 import 'package:tasty_recipe/Services/CartItemDAO.dart';
 import 'package:tasty_recipe/Services/IngredientDAO.dart';
-import 'package:tasty_recipe/Services/RecipeDAO.dart';
-import 'package:tasty_recipe/Services/RecipeIngredientDAO.dart';
-import 'package:tasty_recipe/Services/RecipeStepDAO.dart';
-import 'package:tasty_recipe/Utils/DataNotFoundException.dart';
+import 'package:tasty_recipe/Services/RecipeService.dart';
+import 'package:tasty_recipe/Utils/DatabaseOperationException.dart';
+import 'package:tasty_recipe/Utils/RecipeDetailsResult.dart';
+import 'package:tasty_recipe/Utils/UnknownDatabaseException.dart';
 
 class RecipeDetailsController {
-  final RecipeDAO _recipeDAO = RecipeDAO();
-  final RecipeStepDAO _recipeStepDAO = RecipeStepDAO();
+  final RecipeService _service = RecipeService();
   final IngredientDAO _ingredientDAO = IngredientDAO();
-  final RecipeIngredientDAO _recipeIngredientDAO = RecipeIngredientDAO();
   final CartItemDAO _cartItemDAO = CartItemDAO();
 
-  Future<(Recipe, List<RecipeIngredient>, List<Ingredient>, List<RecipeStep>)>
-  loadFullRecipe(String recipeId) async {
+  Future<RecipeDetailsResult> loadFullRecipe(String recipeId) async {
+    if (recipeId.isEmpty) {
+      return RecipeDetailsError("Invalid input. Try again.");
+    }
+
     try {
       // 1) Get recipe general info
-      final Recipe recipe = await getRecipeDetails(recipeId);
+      final Recipe recipe = await _service.getRecipe(recipeId);
 
       // 2) Get ingredient info (quantity, etc.)
-      final List<RecipeIngredient> recipeIngredientList =
-          await getRecipeIngredients(recipeId);
+      final List<RecipeIngredient> recipeIngredientList = await _service
+          .getRecipeIngredients(recipeId);
 
       final List<String> ingredientIdList = [];
       for (RecipeIngredient item in recipeIngredientList) {
@@ -34,73 +35,37 @@ class RecipeDetailsController {
       }
 
       // 3) Get ingredient names
-      final List<Ingredient> ingredientList = await getIngredients(
+      final List<Ingredient> ingredientList = await _service.getIngredients(
         ingredientIdList,
       );
+
       // 4) Get recipe steps
-      final List<RecipeStep> recipeStepList = await getRecipeSteps(recipeId);
+      final List<RecipeStep> recipeStepList = await _service.getRecipeSteps(
+        recipeId,
+      );
 
-      return (recipe, recipeIngredientList, ingredientList, recipeStepList);
+      return RecipeDetailsSuccess(
+        recipe,
+        recipeIngredientList,
+        ingredientList,
+        recipeStepList,
+      );
     } on ArgumentError catch (e) {
-      throw Exception("Invalid input! Try again.");
-    } on DataNotFoundException catch (e) {
-      print(e.stackTrace);
-      throw Exception("Data not found! Try again.");
-    } on FirebaseException catch (e) {
-      print(e.stackTrace);
-      throw Exception("Something went wrong. Try again.");
-    } catch (e) {
-      print(e);
-      throw Exception("Something went wrong. Try again.");
+      return RecipeDetailsError("Invalid input. Try again.");
+    } on DatabaseOperationException catch (e) {
+      return RecipeDetailsError("Unable to load that recipe. Try again.");
+    } on UnknownDatabaseException catch (e) {
+      return RecipeDetailsError("Something went wrong. Try again.");
     }
-  }
-
-  Future<Recipe> getRecipeDetails(String id) async {
-    if (id.isEmpty) {
-      throw ArgumentError("Invalid input! The input string is empty.");
-    }
-
-    return await _recipeDAO.getRecipeById(id);
-  }
-
-  Future<List<Ingredient>> getIngredients(List<String> ingredientIds) async {
-    if (ingredientIds.isEmpty) {
-      throw ArgumentError("Invalid input! The input list is empty.");
-    }
-
-    final List<Ingredient> ingredients = [];
-
-    for (String id in ingredientIds) {
-      final Ingredient ingredient = await _ingredientDAO.getIngredientById(id);
-      ingredients.add(ingredient);
-    }
-
-    return ingredients;
-  }
-
-  Future<List<RecipeIngredient>> getRecipeIngredients(String recipeId) async {
-    if (recipeId.isEmpty) {
-      throw ArgumentError("Invalid input! The input string is empty.");
-    }
-
-    return await _recipeIngredientDAO.getRecipeIngredientsByRecipeId(recipeId);
-  }
-
-  Future<List<RecipeStep>> getRecipeSteps(String recipeId) async {
-    if (recipeId.isEmpty) {
-      throw ArgumentError("Invalid input! The input string is empty.");
-    }
-
-    return await _recipeStepDAO.getAllRecipeStepById(recipeId);
   }
 
   Future<bool> updateRecipeFavoriteState(Recipe recipe) async {
     try {
-      await _recipeDAO.updateFavoriteState(recipe, !recipe.isFavorite);
+      await _service.updateFavoriteState(recipe);
       return true;
-    } on DataNotFoundException catch (e) {
+    } on DatabaseOperationException catch (e) {
       return false;
-    } catch (e) {
+    } on UnknownDatabaseException catch (e) {
       return false;
     }
   }
@@ -109,13 +74,7 @@ class RecipeDetailsController {
     final bool ingredientExists = await _ingredientDAO.exists(ingredient);
 
     if (ingredientExists) {
-      final newCartItem = CartItem(
-        "prova@gmail.com",
-        ingredient.id,
-        10,
-        "gr",
-        false,
-      );
+      final newCartItem = CartItem("prova@gmail.com", ingredient.id, false);
 
       final bool cartCheck = await _cartItemDAO.exists(newCartItem);
 
@@ -135,19 +94,12 @@ class RecipeDetailsController {
 
   Future<bool> deleteRecipe(Recipe recipe) async {
     try {
-      final batch = FirebaseFirestore.instance.batch();
-      // Add delete operations to the transaction
-      await _recipeStepDAO.deleteByRecipeId(recipe.id, batch);
-      await _recipeIngredientDAO.deleteByRecipeId(recipe.id, batch);
-      await _recipeDAO.deleteByRecipeId(recipe.id, batch);
-
-      // Perform the transaction
-      await batch.commit();
+      await _service.deleteRecipe(recipe);
 
       return true;
-    } on DataNotFoundException catch (e, st) {
+    } on DatabaseOperationException catch (e) {
       return false;
-    } catch (e, st) {
+    } on UnknownDatabaseException catch (e) {
       return false;
     }
   }

@@ -56,6 +56,7 @@ dependencies:
 
   # To animate ListView and PageView scroll
   animated_item: ^0.0.2
+  firebase_app_check: ^0.4.0
 
 
 dev_dependencies:

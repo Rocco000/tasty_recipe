@@ -135,7 +135,7 @@ class _AddRecipeStepsScreenState extends State<AddRecipeStepsScreen> {
         Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
           HomeScreen.route,
           (route) => false,
-          arguments: {"message": msg},
+          arguments: {"msg": msg},
         );
       } else {
         setState(() {

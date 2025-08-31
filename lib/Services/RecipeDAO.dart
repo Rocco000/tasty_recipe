@@ -39,6 +39,7 @@ class RecipeDAO extends DAO<Recipe> {
           docData["userId"] as String,
         );
       } else {
+        print("Strange");
         throw Exception("Something went wrong!");
       }
     } else {
@@ -61,7 +62,7 @@ class RecipeDAO extends DAO<Recipe> {
     }
   }
 
-  Future<void> deleteByRecipeId(String recipeId, WriteBatch batch) async {
+  void deleteByRecipeId(String recipeId, WriteBatch batch) {
     //1) Get document reference
     final docRef = _collection.doc(recipeId);
 
@@ -177,10 +178,7 @@ class RecipeDAO extends DAO<Recipe> {
 
   Future<void> updateFavoriteState(Recipe recipe, bool newFavoriteState) async {
     try {
-      await FirebaseFirestore.instance
-          .collection("Recipe")
-          .doc(recipe.id)
-          .update({"favorite": newFavoriteState});
+      await _collection.doc(recipe.id).update({"favorite": newFavoriteState});
     } on FirebaseException catch (e, st) {
       if (e.code == "not-found") {
         throw DataNotFoundException("Recipe doesn't exist", st);
