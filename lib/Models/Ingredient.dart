@@ -13,7 +13,7 @@ class Ingredient implements Entity {
 
   @override
   Map<String, dynamic> toJson() {
-    return {"id": _id, "name": _name};
+    return {"name": _name};
   }
 
   String get id => _id;
@@ -23,4 +23,14 @@ class Ingredient implements Entity {
   String get name => _name;
 
   set name(String newName) => _name = name;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Ingredient && id == other.id && name == other.name;
+
+  @override
+  int get hashCode => id.hashCode ^ name.hashCode;
+
+  Ingredient clone() => Ingredient(_id, _name);
 }

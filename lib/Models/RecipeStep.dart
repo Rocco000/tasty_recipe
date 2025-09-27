@@ -73,4 +73,26 @@ class RecipeStep implements Entity {
 
     return jsonObject;
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RecipeStep &&
+          runtimeType == other.runtimeType &&
+          recipeId == other.recipeId &&
+          stepOrder == other.stepOrder &&
+          description == other.description &&
+          duration == other.duration &&
+          durationUnit == other.durationUnit;
+
+  @override
+  int get hashCode =>
+      recipeId.hashCode ^
+      stepOrder.hashCode ^
+      description.hashCode ^
+      duration.hashCode ^
+      durationUnit.hashCode;
+
+  RecipeStep clone() =>
+      RecipeStep(_recipeId, _stepOrder, _description, _duration, _durationUnit);
 }

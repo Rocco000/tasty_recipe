@@ -60,4 +60,23 @@ class RecipeIngredient implements Entity {
       "unitMeasurement": unitMeasurement,
     };
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RecipeIngredient &&
+          recipeId == other.recipeId &&
+          ingredientId == other.ingredientId &&
+          quantity == other.quantity &&
+          unitMeasurement == other.unitMeasurement;
+
+  @override
+  int get hashCode =>
+      recipeId.hashCode ^
+      ingredientId.hashCode ^
+      quantity.hashCode ^
+      unitMeasurement.hashCode;
+
+  RecipeIngredient clone() =>
+      RecipeIngredient(_recipeId, _ingredientId, _quantity, _unitMeasurement);
 }

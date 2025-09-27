@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:tasty_recipe/Models/Entity.dart';
 
@@ -156,4 +157,40 @@ class Recipe implements Entity {
       "userId": userId,
     };
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Recipe &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          name == other.name &&
+          servings == other.servings &&
+          category == other.category &&
+          listEquals(tags, other.tags) &&
+          _favorite == other._favorite &&
+          userId == other.userId;
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      name.hashCode ^
+      servings.hashCode ^
+      category.hashCode ^
+      Object.hashAll(tags) ^
+      _favorite.hashCode ^
+      userId.hashCode;
+
+  Recipe clone() => Recipe(
+    _image,
+    _id,
+    _name,
+    _difficulty,
+    _duration,
+    _servings,
+    _category,
+    _tags,
+    _favorite,
+    _userId,
+  );
 }
