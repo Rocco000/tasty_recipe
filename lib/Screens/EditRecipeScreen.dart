@@ -3,7 +3,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import 'package:tasty_recipe/Models/Recipe.dart';
+import 'package:tasty_recipe/Screens/EditIngredientsScreen.dart';
+import 'package:tasty_recipe/Services/RecipeEditController.dart';
 import 'package:tasty_recipe/Widgets/RecipeGeneralInfoForm.dart';
 
 class EditRecipeScreen extends StatefulWidget {
@@ -20,27 +23,28 @@ class EditRecipeScreen extends StatefulWidget {
 class _EditRecipeScreenState extends State<EditRecipeScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
 
-  Recipe _existingRecipe = Recipe(
-    File("A55 di Rocco/Internal storage/DCIM/Camera/20240727_114539.jpg"),
-    "0",
-    "Cake",
-    3,
-    30,
-    2,
-    "First Course",
-    ["Vegan"],
-    false,
-    "",
-  );
+  late RecipeEditController _controller;
+  late Recipe _oldRecipe;
+  late Recipe _newRecipe;
+
+  @override
+  void initState() {
+    super.initState();
+    // Get controller instance
+    _controller = Provider.of<RecipeEditController>(context, listen: false);
+
+    // Get old recipe version
+    _oldRecipe = _controller.oldRecipe;
+    _newRecipe = _oldRecipe.clone();
+  }
 
   Future _pickImageFromGallery() async {
     // source: indicate where it should pick the image
     final img = await ImagePicker().pickImage(source: ImageSource.gallery);
 
-    // WHY???
     if (img != null) {
       setState(() {
-        _existingRecipe.image = File(img.path);
+        _newRecipe.image = File(img.path);
       });
     }
   }
@@ -70,7 +74,7 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
                       height: 100,
                     ),
                     Text(
-                      "Edit recipe: ${_existingRecipe.name}",
+                      "Edit recipe: ${_oldRecipe!.name}",
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
@@ -81,7 +85,7 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
               ),
 
               RecipeGeneralInfoForm(
-                existingRecipe: _existingRecipe,
+                existingRecipe: _newRecipe,
                 formKey: _formKey,
                 recipeImg: null,
                 onImageUploaded: _pickImageFromGallery,
@@ -89,17 +93,17 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
                 selectedTags: null,
                 onDifficultyChanged: (difficulty) {
                   setState(() {
-                    _existingRecipe.difficulty = difficulty;
+                    _newRecipe.difficulty = difficulty;
                   });
                 },
                 onTagChanged: (tagName, selection) {
-                  if (_existingRecipe.tags.contains(tagName)) {
+                  if (_newRecipe.tags.contains(tagName)) {
                     setState(() {
-                      _existingRecipe.tags.remove(tagName);
+                      _newRecipe.tags.remove(tagName);
                     });
                   } else {
                     setState(() {
-                      _existingRecipe.tags.add(tagName);
+                      _newRecipe.tags.add(tagName);
                     });
                   }
                 },
@@ -109,15 +113,24 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
                 onPressed: () {
                   if (_formKey.currentState!.saveAndValidate()) {
                     final formFields = _formKey.currentState!.value;
-                    var app = {
-                      "name": formFields["recipeName"],
-                      "duration": formFields["recipeDuration"],
-                      "difficulty": _existingRecipe.difficulty,
-                      "servings": formFields["recipeServing"],
-                      "category": formFields["recipeCategory"],
-                      "tags": _existingRecipe.tags,
-                    };
-                    print(app);
+                    // Save changes
+                    final String newRecipeName =
+                        formFields["recipeName"] as String;
+                    final String duration =
+                        formFields["recipeDuration"] as String;
+                    final String servings =
+                        formFields["recipeServing"] as String;
+
+                    _newRecipe.name = newRecipeName.trim();
+                    _newRecipe.duration = int.parse(duration);
+                    _newRecipe.servings = int.parse(servings);
+                    _newRecipe.category =
+                        formFields["recipeCategory"] as String;
+
+                    _controller.updateGeneralInfo(_newRecipe);
+
+                    // Go to the next screen
+                    Navigator.pushNamed(context, EditIngredientsScreen.route);
                   }
                 },
                 style: ElevatedButton.styleFrom(

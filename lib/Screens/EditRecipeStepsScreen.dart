@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
+import 'package:provider/provider.dart';
+import 'package:tasty_recipe/Models/Recipe.dart';
 import 'package:tasty_recipe/Models/RecipeStep.dart';
+import 'package:tasty_recipe/Services/RecipeEditController.dart';
 import 'package:tasty_recipe/Widgets/DottedButtonWidget.dart';
 import 'package:tasty_recipe/Widgets/RecipeStepFormField.dart';
 
@@ -16,50 +19,46 @@ class EditRecipeStepsScreen extends StatefulWidget {
 class _EditRecipeStepsScreenState extends State<EditRecipeStepsScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
 
-  final List<RecipeStep> _recipeSteps = [
-    RecipeStep(
-      "0",
-      0,
-      "ncvsdbvujfbsovabf vsdjnviobfdis v vsfojnbgvrsfjn",
-      null,
-      null,
-    ),
-    RecipeStep(
-      "0",
-      1,
-      "ncvsdbvujfbsovabf vsdjnviobfdis v vsfojnbgvrsfjn rgvedrtsgv tg rtedsg esrtd bers dg",
-      20,
-      "minute",
-    ),
-    RecipeStep(
-      "0",
-      2,
-      "ncvsdbvujfbsovabf vsdjnviobfdis v vsfojnbgvrsfjn rfg vdfg bd gvrde ",
-      1,
-      "hour",
-    ),
-    RecipeStep(
-      "0",
-      3,
-      "ncvsdbvujfbsovabf vsdjnviobfdis v vsfojnbgvrsfjn rfg vdfg bd gvrde ",
-      null,
-      null,
-    ),
-  ];
+  late RecipeEditController _controller;
+  late Recipe _recipe;
+  late List<RecipeStep> _currentRecipeSteps;
 
-  int _numStepFields = 1;
-  List<int> _stepIds = [];
+  late int _numStepFields;
+  late List<int> _stepIds;
+  late int _formFieldIdGenerator;
+  late List<int> _formFieldIds;
+  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    _numStepFields = _recipeSteps.length;
-    _stepIds = List.generate(_recipeSteps.length, (index) => index);
+    _controller = Provider.of<RecipeEditController>(context, listen: false);
+
+    // Get old recipe steps version
+    _recipe = _controller.oldRecipe;
+    List<RecipeStep> controllerRecipeStep = _controller.oldRecipeSteps;
+    _currentRecipeSteps = List.generate(
+      controllerRecipeStep.length,
+      (index) => controllerRecipeStep[index].clone(),
+    );
+
+    // Define Dismissible Widget IDs for existing ingredients
+    _numStepFields = _currentRecipeSteps.length;
+    _stepIds = List.generate(_numStepFields, (index) => index);
+
+    // Define form field IDs
+    _formFieldIdGenerator = _numStepFields - 1;
+    _formFieldIds = List.generate(_numStepFields, (index) => index);
   }
 
   Widget _generateStepField(int index) {
     return (index == 0)
-        ? RecipeStepFormField(stepOrder: index, recipeStep: _recipeSteps[index])
+        ? RecipeStepFormField(
+            stepOrder: index,
+            fieldId: _formFieldIds[index],
+            durationErrorMessage: "",
+            recipeStep: _currentRecipeSteps[index],
+          )
         : Dismissible(
             key: ValueKey<int>(_stepIds[index]),
             background: const DecoratedBox(
@@ -71,27 +70,37 @@ class _EditRecipeStepsScreenState extends State<EditRecipeStepsScreen> {
             ),
             direction: DismissDirection.startToEnd,
             onDismissed: (direction) {
+              // Remove its corresponding form fields
+              _formKey.currentState!.removeInternalFieldValue(
+                "stepDescription${_formFieldIds[index]}",
+              );
+              _formKey.currentState!.removeInternalFieldValue(
+                "stepDuration${_formFieldIds[index]}",
+              );
+              _formKey.currentState!.removeInternalFieldValue(
+                "stepDurationUnit${_formFieldIds[index]}",
+              );
+
               setState(() {
                 _numStepFields -= 1;
-                if (index <= _recipeSteps.length - 1) {
-                  // Remove the step from recipe step list
-                  _recipeSteps.removeAt(index);
+                if (index < _currentRecipeSteps.length) {
+                  // Remove the step from recipe step list IF it is not a new step
+                  _currentRecipeSteps.removeAt(index);
                 }
 
-                // Remove its corresponding id
+                // Remove its corresponding Widget ID
                 _stepIds.removeAt(index);
-              });
 
-              _formKey.currentState!.removeInternalFieldValue("step$index");
-              _formKey.currentState!.removeInternalFieldValue(
-                "stepTimer$index",
-              );
-              _formKey.currentState!.removeInternalFieldValue("timeUnit$index");
+                // Remove its corresponding Form Field ID
+                _formFieldIds.removeAt(index);
+              });
             },
             child: RecipeStepFormField(
               stepOrder: index,
-              recipeStep: (index <= _recipeSteps.length - 1)
-                  ? _recipeSteps[index]
+              fieldId: _formFieldIds[index],
+              durationErrorMessage: "",
+              recipeStep: (index < _currentRecipeSteps.length)
+                  ? _currentRecipeSteps[index]
                   : null,
             ),
           );
@@ -105,6 +114,16 @@ class _EditRecipeStepsScreenState extends State<EditRecipeStepsScreen> {
           backgroundColor: Colors.orange,
           foregroundColor: Colors.white,
           title: const Text("Tasty Recipe"),
+          leading: IconButton(
+            onPressed: () {
+              // Clear temporary data stored in the Controller object before going back to the previous screen
+              _controller.clearRecipeSteps();
+              _controller.clearIngredients();
+              _controller.clearRecipeIngredientList();
+              Navigator.pop(context);
+            },
+            icon: Icon(Icons.arrow_back),
+          ),
         ),
         body: Padding(
           padding: const EdgeInsets.all(8.0),
@@ -131,8 +150,13 @@ class _EditRecipeStepsScreenState extends State<EditRecipeStepsScreen> {
                 child: DottedButtonWidget(
                   onTap: () {
                     setState(() {
+                      // Add a new Widget ID
                       _numStepFields += 1;
                       _stepIds.add(DateTime.now().millisecondsSinceEpoch);
+
+                      // Add a new Form Field ID
+                      _formFieldIdGenerator++;
+                      _formFieldIds.add(_formFieldIdGenerator);
                     });
                   },
                   child: Column(
@@ -154,21 +178,100 @@ class _EditRecipeStepsScreenState extends State<EditRecipeStepsScreen> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10.0),
                   child: ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.saveAndValidate()) {
-                        final formFields = _formKey.currentState!.value;
+                    onPressed: (_isSaving)
+                        ? null
+                        : () async {
+                            setState(() {
+                              // Disable the save button to prevent multiple submissions
+                              _isSaving = true;
+                            });
 
-                        for (int i = 0; i < _numStepFields; i++) {
-                          var app = {
-                            "name": formFields["step$i"],
-                            "timer": formFields["stepTimer$i"],
-                            "timerUnit": formFields["timeUnit$i"],
-                          };
+                            if (_formKey.currentState!.saveAndValidate()) {
+                              final formFields = _formKey.currentState!.value;
+                              List<RecipeStep> newSteps = [];
 
-                          print(app);
-                        }
-                      }
-                    },
+                              int i = 0;
+                              for (int fieldId in _formFieldIds) {
+                                String description =
+                                    formFields["stepDescription$fieldId"]
+                                        as String;
+                                description = description.trim();
+
+                                String? unit;
+                                double? duration;
+
+                                // Check if the i-th step has a time duration
+                                if (formFields.containsKey(
+                                      "stepDuration$fieldId",
+                                    ) &&
+                                    formFields.containsKey(
+                                      "stepDurationUnit$fieldId",
+                                    )) {
+                                  String durationStr =
+                                      formFields["stepDuration$fieldId"]
+                                          as String;
+                                  duration = double.parse(durationStr);
+                                  unit =
+                                      formFields["stepDurationUnit$fieldId"]
+                                          as String;
+                                  unit = unit.trim();
+                                }
+
+                                print(
+                                  "Step $i: duration: $duration; Unit: $unit",
+                                );
+
+                                newSteps.add(
+                                  RecipeStep(
+                                    _recipe.id,
+                                    i,
+                                    description,
+                                    duration,
+                                    unit,
+                                  ),
+                                );
+
+                                i++;
+                              }
+
+                              // Store new step list in the Controller class
+                              _controller.updateRecipeSteps(newSteps);
+
+                              // Apply changes to the database
+                              final (result, msg) = await _controller
+                                  .saveChanges();
+
+                              if (!result) {
+                                // An ERROR occurred
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(msg),
+                                    backgroundColor: Colors.black45,
+                                    duration: const Duration(seconds: 2),
+                                    behavior: SnackBarBehavior
+                                        .floating, // Makes it float over the UI
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                // SUCCESS -> Navigate to the RecipeDetailsScreen
+                                // Exit from the inner Navigator (with rootNavigator:true) and navigate back to RecipeDetailsScreen
+                                Navigator.of(context, rootNavigator: true).pop({
+                                  "recipe": _controller.newRecipe,
+                                  "recipeIngredients":
+                                      _controller.newRecipeIngredientList,
+                                  "ingredients": _controller.newIngredients,
+                                  "steps": _controller.newRecipeSteps,
+                                });
+                              }
+                            }
+
+                            setState(() {
+                              _isSaving = false;
+                            });
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blueAccent,
                       foregroundColor: Colors.white,
