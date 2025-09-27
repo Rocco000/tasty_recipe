@@ -6,11 +6,13 @@ import 'package:tasty_recipe/Models/RecipeStep.dart';
 
 class RecipeStepFormField extends StatefulWidget {
   final int stepOrder;
+  final int fieldId;
   final RecipeStep? recipeStep;
   String durationErrorMessage;
 
   RecipeStepFormField({
     required this.stepOrder,
+    required this.fieldId,
     required this.durationErrorMessage,
     this.recipeStep,
     super.key,
@@ -57,7 +59,7 @@ class _RecipeStepFormFieldState extends State<RecipeStepFormField> {
             Container(
               padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
               child: FormBuilderTextField(
-                name: "stepDescription${widget.stepOrder}",
+                name: "stepDescription${widget.fieldId}",
                 maxLines: 5,
                 minLines: 2,
                 initialValue: (widget.recipeStep != null)
@@ -87,6 +89,21 @@ class _RecipeStepFormFieldState extends State<RecipeStepFormField> {
                   onChanged: (value) {
                     setState(() {
                       _hasTimer = !_hasTimer;
+
+                      if (!_hasTimer) {
+                        // Remove the timer information from the RecipeStep object if it exists
+                        widget.recipeStep?.duration = null;
+                        widget.recipeStep?.durationUnit = null;
+
+                        // Clear duration and unit fields from FormBuilder
+                        final formState = FormBuilder.of(context);
+                        formState!.removeInternalFieldValue(
+                          "stepDuration${widget.fieldId}",
+                        );
+                        formState!.removeInternalFieldValue(
+                          "stepDurationUnit${widget.fieldId}",
+                        );
+                      }
                     });
                   },
                 ),
@@ -102,7 +119,7 @@ class _RecipeStepFormFieldState extends State<RecipeStepFormField> {
                     // TIME
                     Expanded(
                       child: FormBuilderTextField(
-                        name: "stepDuration${widget.stepOrder}",
+                        name: "stepDuration${widget.fieldId}",
                         initialValue:
                             (widget.recipeStep != null &&
                                 widget.recipeStep!.duration != null)
@@ -136,7 +153,7 @@ class _RecipeStepFormFieldState extends State<RecipeStepFormField> {
                     // TIME UNIT
                     Expanded(
                       child: FormBuilderDropdown<String>(
-                        name: "stepDurationUnit${widget.stepOrder}",
+                        name: "stepDurationUnit${widget.fieldId}",
                         initialValue:
                             (widget.recipeStep != null &&
                                 widget.recipeStep!.durationUnit != null)

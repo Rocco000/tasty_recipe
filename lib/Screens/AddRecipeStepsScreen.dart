@@ -24,10 +24,14 @@ class _AddRecipeStepsScreenState extends State<AddRecipeStepsScreen> {
 
   int _numStepFields = 1;
 
+  int _formFieldIdGenerator = 0;
+  List<int> _formFieldIds = [0];
+
   Widget _generateRecipeStepFields(int index, int id) {
     return (index == 0)
         ? RecipeStepFormField(
             stepOrder: index,
+            fieldId: _formFieldIds[index], // DA CAMBIARE
             durationErrorMessage: (_durationErrorFlag)
                 ? "Mismatch with total recipe duration"
                 : "",
@@ -50,23 +54,24 @@ class _AddRecipeStepsScreenState extends State<AddRecipeStepsScreen> {
 
               // Clear the form state
               _formKey.currentState!.removeInternalFieldValue(
-                "stepDescription$index",
+                "stepDescription${_formFieldIds[index]}",
               );
 
               if (_formKey.currentState!.fields.keys.contains(
-                "stepDuration$index",
+                "stepDuration${_formFieldIds[index]}",
               )) {
                 // Clear optional fields
                 _formKey.currentState!.removeInternalFieldValue(
-                  "stepDuration$index",
+                  "stepDuration${_formFieldIds[index]}",
                 );
                 _formKey.currentState!.removeInternalFieldValue(
-                  "stepDurationUnit$index",
+                  "stepDurationUnit${_formFieldIds[index]}",
                 );
               }
             },
             child: RecipeStepFormField(
               stepOrder: index,
+              fieldId: _formFieldIds[index],
               durationErrorMessage: (_durationErrorFlag)
                   ? "Mismatch with total recipe duration"
                   : "",
@@ -85,15 +90,15 @@ class _AddRecipeStepsScreenState extends State<AddRecipeStepsScreen> {
       // Get form state
       final formFields = _formKey.currentState!.value;
 
-      for (int i = 0; i < _numStepFields; i++) {
-        if (formFields["stepDuration$i"] == null) {
+      int i = 0;
+      for (int fieldId in _formFieldIds) {
+        if (formFields["stepDuration$fieldId"] == null) {
           // Store step WITHOUT TIMER
           try {
-            controller.addStep(i, formFields["stepDescription$i"]);
+            controller.addStep(i, formFields["stepDescription$fieldId"]);
           } on InvalidFieldException catch (e) {
-            _formKey.currentState!.fields["stepDescription$i"]!.invalidate(
-              "Required",
-            );
+            _formKey.currentState!.fields["stepDescription$fieldId"]!
+                .invalidate("Required");
 
             return;
           }
@@ -102,29 +107,28 @@ class _AddRecipeStepsScreenState extends State<AddRecipeStepsScreen> {
           try {
             controller.addStep(
               i,
-              formFields["stepDescription$i"],
-              stepDuration: double.parse(formFields["stepDuration$i"]),
-              stepDurationUnit: formFields["stepDurationUnit$i"],
+              formFields["stepDescription$fieldId"],
+              stepDuration: double.parse(formFields["stepDuration$fieldId"]),
+              stepDurationUnit: formFields["stepDurationUnit$fieldId"],
             );
           } on InvalidFieldException catch (e) {
             // Highlight with a red border the invalid field
             if (e.fieldName == "stepDescription") {
-              _formKey.currentState!.fields["stepDescription$i"]!.invalidate(
-                "Required",
-              );
+              _formKey.currentState!.fields["stepDescription$fieldId"]!
+                  .invalidate("Required");
             } else if (e.fieldName == "stepDuration") {
-              _formKey.currentState!.fields["stepDuration$i"]!.invalidate(
+              _formKey.currentState!.fields["stepDuration$fieldId"]!.invalidate(
                 "Invalid input",
               );
             } else {
-              _formKey.currentState!.fields["stepDurationUnit$i"]!.invalidate(
-                "Invalid input",
-              );
+              _formKey.currentState!.fields["stepDurationUnit$fieldId"]!
+                  .invalidate("Invalid input");
             }
 
             return;
           }
         }
+        i++;
       }
 
       // Store data
@@ -228,8 +232,13 @@ class _AddRecipeStepsScreenState extends State<AddRecipeStepsScreen> {
                     onTap: () {
                       if (!_isSaving) {
                         setState(() {
+                          // Add a new Widget ID
                           _numStepFields += 1;
                           _stepIds.add(DateTime.now().millisecondsSinceEpoch);
+
+                          // Add a new Form Field ID
+                          _formFieldIdGenerator++;
+                          _formFieldIds.add(_formFieldIdGenerator);
                         });
                       }
                     },
