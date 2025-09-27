@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:tasty_recipe/Models/CartItem.dart';
 import 'package:tasty_recipe/Models/Ingredient.dart';
 import 'package:tasty_recipe/Models/Recipe.dart';
@@ -8,55 +9,86 @@ import 'package:tasty_recipe/Services/CartItemDAO.dart';
 import 'package:tasty_recipe/Services/IngredientDAO.dart';
 import 'package:tasty_recipe/Services/RecipeService.dart';
 import 'package:tasty_recipe/Utils/DatabaseOperationException.dart';
-import 'package:tasty_recipe/Utils/RecipeDetailsResult.dart';
 import 'package:tasty_recipe/Utils/UnknownDatabaseException.dart';
 
-class RecipeDetailsController {
+class RecipeDetailsController extends ChangeNotifier {
   final RecipeService _service = RecipeService();
   final IngredientDAO _ingredientDAO = IngredientDAO();
   final CartItemDAO _cartItemDAO = CartItemDAO();
 
-  Future<RecipeDetailsResult> loadFullRecipe(String recipeId) async {
-    if (recipeId.isEmpty) {
-      return RecipeDetailsError("Invalid input. Try again.");
-    }
+  bool _isLoading = false;
+  String? _error;
 
-    try {
-      // 1) Get recipe general info
-      final Recipe recipe = await _service.getRecipe(recipeId);
+  Recipe _recipe;
+  List<RecipeIngredient> _recipeIngredientList = [];
+  List<Ingredient> _ingredients = [];
+  List<RecipeStep> _recipeStepList = [];
 
-      // 2) Get ingredient info (quantity, etc.)
-      final List<RecipeIngredient> recipeIngredientList = await _service
-          .getRecipeIngredients(recipeId);
+  RecipeDetailsController(this._recipe);
 
-      final List<String> ingredientIdList = [];
-      for (RecipeIngredient item in recipeIngredientList) {
-        ingredientIdList.add(item.ingredientId);
+  Recipe get recipe => _recipe;
+
+  List<RecipeIngredient> get recipeIngredientList => _recipeIngredientList;
+
+  List<Ingredient> get ingredients => _ingredients;
+
+  List<RecipeStep> get recipeSteps => _recipeStepList;
+
+  bool get isLoading => _isLoading;
+
+  bool get hasError => _error != null;
+
+  String? get errorMessage => _error;
+
+  Future<void> loadFullRecipe() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    if (_recipeIngredientList.isEmpty ||
+        _ingredients.isEmpty ||
+        _recipeStepList.isEmpty) {
+      // LOAD DATA FROM DB if no cached data is present
+      try {
+        // 1) Get ingredient info (quantity, etc.)
+        _recipeIngredientList = await _service.getRecipeIngredients(_recipe.id);
+
+        final List<String> ingredientIdList = [];
+        for (RecipeIngredient item in _recipeIngredientList) {
+          ingredientIdList.add(item.ingredientId);
+        }
+
+        // 2) Get ingredient names
+        _ingredients = await _service.getIngredients(ingredientIdList);
+
+        // 3) Get recipe steps
+        _recipeStepList = await _service.getRecipeSteps(_recipe.id);
+      } on ArgumentError catch (e) {
+        _error = "Invalid input. Try again.";
+      } on DatabaseOperationException catch (e) {
+        _error = "Unable to load that recipe. Try again.";
+      } on UnknownDatabaseException catch (e) {
+        _error = "Something went wrong. Try again.";
+      } finally {
+        _isLoading = false;
+        notifyListeners();
       }
-
-      // 3) Get ingredient names
-      final List<Ingredient> ingredientList = await _service.getIngredients(
-        ingredientIdList,
-      );
-
-      // 4) Get recipe steps
-      final List<RecipeStep> recipeStepList = await _service.getRecipeSteps(
-        recipeId,
-      );
-
-      return RecipeDetailsSuccess(
-        recipe,
-        recipeIngredientList,
-        ingredientList,
-        recipeStepList,
-      );
-    } on ArgumentError catch (e) {
-      return RecipeDetailsError("Invalid input. Try again.");
-    } on DatabaseOperationException catch (e) {
-      return RecipeDetailsError("Unable to load that recipe. Try again.");
-    } on UnknownDatabaseException catch (e) {
-      return RecipeDetailsError("Something went wrong. Try again.");
     }
+  }
+
+  void updateRecipeInfoWithNewVersion(
+    Recipe newRecipe,
+    List<RecipeIngredient> newRecipeIngredientList,
+    List<Ingredient> newIngredients,
+    List<RecipeStep> newRecipeStepList,
+  ) {
+    _recipe = newRecipe;
+    _recipeIngredientList = newRecipeIngredientList;
+    _ingredients = newIngredients;
+    _recipeStepList = newRecipeStepList;
+
+    // Rebuild the UI
+    notifyListeners();
   }
 
   Future<bool> updateRecipeFavoriteState(Recipe recipe) async {

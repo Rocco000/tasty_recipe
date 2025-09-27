@@ -3,19 +3,17 @@ import 'package:tasty_recipe/Models/Ingredient.dart';
 import 'package:tasty_recipe/Models/RecipeIngredient.dart';
 import 'package:tasty_recipe/Models/RecipeStep.dart';
 import 'package:tasty_recipe/Models/Recipe.dart';
-import 'package:tasty_recipe/Screens/EditRecipeScreen.dart';
 import 'package:tasty_recipe/Screens/HomeScreen.dart';
 import 'package:tasty_recipe/Services/RecipeDetailsController.dart';
-import 'package:tasty_recipe/Utils/RecipeDetailsResult.dart';
+import 'package:tasty_recipe/Utils/RecipeEditFlow.dart';
 import 'package:tasty_recipe/Widgets/RecipeIngredientWidget.dart';
 import 'package:tasty_recipe/Widgets/RecipeStepWidget.dart';
 
 class RecipeDetailsScreen extends StatefulWidget {
-  static const String route = "recipeDetails";
-  final String _recipeId;
+  static const String route = "/recipeDetails";
   final RecipeDetailsController _controller;
 
-  const RecipeDetailsScreen(this._recipeId, this._controller, {super.key});
+  const RecipeDetailsScreen(this._controller, {super.key});
 
   @override
   State<RecipeDetailsScreen> createState() => _RecipeDetailsScreenState();
@@ -24,12 +22,10 @@ class RecipeDetailsScreen extends StatefulWidget {
 class _RecipeDetailsScreenState extends State<RecipeDetailsScreen> {
   late Recipe _recipe;
 
-  late final Future<RecipeDetailsResult> _futureData;
-
   @override
   void initState() {
     super.initState();
-    _futureData = widget._controller.loadFullRecipe(widget._recipeId);
+    widget._controller.loadFullRecipe();
   }
 
   Widget _generateIngredients(
@@ -407,7 +403,166 @@ class _RecipeDetailsScreenState extends State<RecipeDetailsScreen> {
           title: const Text("Tasty Recipe"),
         ),
 
-        body: SingleChildScrollView(
+        body: AnimatedBuilder(
+          animation: widget._controller,
+          builder: (context, _) {
+            if (widget._controller.isLoading) {
+              return Container(
+                alignment: Alignment.center,
+                color: Colors.white,
+                child: SizedBox(
+                  width: 50,
+                  height: 50,
+                  child: const CircularProgressIndicator(color: Colors.orange),
+                ),
+              );
+            }
+
+            if (widget._controller.hasError) {
+              return _generateErrorMessage(widget._controller.errorMessage!);
+            }
+
+            final Recipe recipe = widget._controller.recipe;
+            _recipe = recipe.clone();
+            final List<RecipeIngredient> recipeIngredientList =
+                widget._controller.recipeIngredientList;
+            final List<Ingredient> ingredientList =
+                widget._controller.ingredients;
+            final List<RecipeStep> stepList = widget._controller.recipeSteps;
+
+            return ListView(
+              children: <Widget>[
+                // RECIPE GENERAL INFO
+                ..._showRecipeGeneralInfo(_recipe),
+
+                // INGREDIENTS
+                ..._showIngredients(recipeIngredientList, ingredientList),
+
+                // STEPS
+                ..._showSteps(stepList),
+
+                // BUTTONS
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    spacing: 10,
+                    children: <Widget>[
+                      // DELETE BUTTON
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          final bool result = await widget._controller
+                              .deleteRecipe(recipe);
+
+                          if (!result) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text(
+                                  "Unable to delete that recipe. Try again",
+                                ),
+                                backgroundColor: const Color(0xFFE63946),
+                                duration: const Duration(seconds: 2),
+                                behavior: SnackBarBehavior
+                                    .floating, // Makes it float over the UI
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+
+                          Navigator.of(
+                            context,
+                            rootNavigator: true,
+                          ).pushNamedAndRemoveUntil(
+                            HomeScreen.route,
+                            (route) => false,
+                            arguments: {
+                              "msg": "Successfully deleted the recipe!",
+                            },
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE63946),
+                          foregroundColor: Colors.white,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(8)),
+                          ),
+                        ),
+                        icon: const Icon(Icons.delete_outline),
+                        label: const Text("Delete"),
+                      ),
+
+                      // EDIT BUTTON
+                      ElevatedButton(
+                        onPressed: () async {
+                          // Navigate to the Edit Flow
+                          final result = await Navigator.pushNamed(
+                            context,
+                            RecipeEditFlow.route,
+                            arguments: {
+                              "recipe": recipe,
+                              "recipeIngredients": recipeIngredientList,
+                              "ingredients": ingredientList,
+                              "steps": stepList,
+                            },
+                          );
+
+                          if (result != null) {
+                            // Cache the new recipe version in the Controller class
+                            Map<String, dynamic> newRecipeVersion =
+                                result as Map<String, dynamic>;
+
+                            widget._controller.updateRecipeInfoWithNewVersion(
+                              newRecipeVersion["recipe"] as Recipe,
+                              newRecipeVersion["recipeIngredients"]
+                                  as List<RecipeIngredient>,
+                              newRecipeVersion["ingredients"]
+                                  as List<Ingredient>,
+                              newRecipeVersion["steps"] as List<RecipeStep>,
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange.shade300,
+                          foregroundColor: Colors.white,
+                          shadowColor: Colors.black,
+                          elevation: 2.0,
+                        ),
+                        child: Row(
+                          spacing: 5,
+                          children: const <Widget>[
+                            Icon(Icons.edit_rounded),
+                            Text(
+                              "Edit",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        floatingActionButton: FloatingActionButton(
+          tooltip: "Start",
+          onPressed: () {},
+          child: const Icon(Icons.play_arrow_rounded),
+        ),
+      ),
+    );
+  }
+}
+
+/*
+SingleChildScrollView(
           child: FutureBuilder<RecipeDetailsResult>(
             future: _futureData,
             builder: (context, snapshot) {
@@ -521,10 +676,11 @@ class _RecipeDetailsScreenState extends State<RecipeDetailsScreen> {
 
                         // EDIT BUTTON
                         ElevatedButton(
-                          onPressed: () {
-                            Navigator.pushNamed(
+                          onPressed: () async {
+                            // Navigate to the Edit Flow
+                            final result = await Navigator.pushNamed(
                               context,
-                              EditRecipeScreen.route,
+                              RecipeEditFlow.route,
                               arguments: {
                                 "recipe": successResult.recipe,
                                 "recipeIngredients": recipeIngredientList,
@@ -532,6 +688,21 @@ class _RecipeDetailsScreenState extends State<RecipeDetailsScreen> {
                                 "steps": stepList,
                               },
                             );
+
+                            if (result != null) {
+                              // Cache the new recipe version in the Controller class
+                              Map<String, dynamic> newRecipeVersion =
+                                  result as Map<String, dynamic>;
+
+                              widget._controller.updateRecipeInfoWithNewVersion(
+                                newRecipeVersion["recipe"] as Recipe,
+                                newRecipeVersion["recipeIngredients"]
+                                    as List<RecipeIngredient>,
+                                newRecipeVersion["ingredients"]
+                                    as List<Ingredient>,
+                                newRecipeVersion["steps"] as List<RecipeStep>,
+                              );
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.orange.shade300,
@@ -561,13 +732,4 @@ class _RecipeDetailsScreenState extends State<RecipeDetailsScreen> {
             },
           ),
         ),
-
-        floatingActionButton: FloatingActionButton(
-          tooltip: "Start",
-          onPressed: () {},
-          child: const Icon(Icons.play_arrow_rounded),
-        ),
-      ),
-    );
-  }
-}
+*/
