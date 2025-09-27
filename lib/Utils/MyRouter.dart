@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:tasty_recipe/Models/Recipe.dart';
 import 'package:tasty_recipe/Screens/CartScreen.dart';
-import 'package:tasty_recipe/Screens/EditIngredientsScreen.dart';
-import 'package:tasty_recipe/Screens/EditRecipeScreen.dart';
-import 'package:tasty_recipe/Screens/EditRecipeStepsScreen.dart';
 import 'package:tasty_recipe/Screens/HomeScreen.dart';
 import 'package:tasty_recipe/Screens/LoginScreen.dart';
 import 'package:tasty_recipe/Screens/PrepareRecipeScreen.dart';
@@ -14,6 +12,7 @@ import 'package:tasty_recipe/Services/CartController.dart';
 import 'package:tasty_recipe/Services/RecipeDetailsController.dart';
 import 'package:tasty_recipe/Services/RecipeListController.dart';
 import 'package:tasty_recipe/Utils/RecipeCreationFlow.dart';
+import 'package:tasty_recipe/Utils/RecipeEditFlow.dart';
 
 abstract class MyRouter {
   static Route<dynamic> generateRoute(
@@ -34,15 +33,11 @@ abstract class MyRouter {
             return ProfileScreen();
           case RecipeCreationFlow.route:
             return RecipeCreationFlow();
-          case EditRecipeScreen.route:
-            return EditRecipeScreen();
-          case EditIngredientsScreen.route:
-            return EditIngredientsScreen();
-          case EditRecipeStepsScreen.route:
-            return EditRecipeStepsScreen();
+          case RecipeEditFlow.route:
+            return RecipeEditFlow();
           case RecipeDetailsScreen.route:
-            final String recipeId = settings.arguments as String;
-            return RecipeDetailsScreen(recipeId, RecipeDetailsController());
+            final Recipe recipe = settings.arguments as Recipe;
+            return RecipeDetailsScreen(RecipeDetailsController(recipe));
           case PrepareRecipeScreen.route:
             return PrepareRecipeScreen();
           case RecipeListScreen.route:
