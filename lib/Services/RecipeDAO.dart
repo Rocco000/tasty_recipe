@@ -15,6 +15,10 @@ class RecipeDAO extends DAO<Recipe> {
     return _collection.doc(); // auto-generates ID
   }
 
+  DocumentReference getRef(Recipe recipe) {
+    return _collection.doc(recipe.id);
+  }
+
   Future<Recipe> getRecipeById(String id) async {
     if (id.isEmpty) {
       throw ArgumentError("Invalid input.");
@@ -191,5 +195,20 @@ class RecipeDAO extends DAO<Recipe> {
         st,
       );
     }
+  }
+
+  /// Update the input Recipe using the input batch
+  /// [ref] the DocumentReference of the input Recipe to be updated
+  /// [recipe] the Recipe to be updated
+  /// [batch] a WriteBatch to add the updated operation.
+  void updateWithBatch(DocumentReference ref, Recipe recipe, WriteBatch batch) {
+    batch.update(ref, {
+      "name": recipe.name,
+      "difficulty": recipe.difficulty,
+      "duration": recipe.duration,
+      "servings": recipe.servings,
+      "category": recipe.category,
+      "tags": recipe.tags,
+    });
   }
 }

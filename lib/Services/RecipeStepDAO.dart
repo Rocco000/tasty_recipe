@@ -11,6 +11,16 @@ class RecipeStepDAO extends DAO<RecipeStep> {
     return _collection.doc(); // auto-generates ID
   }
 
+  Future<DocumentReference> getRef(RecipeStep item) async {
+    if (item == null) {
+      throw ArgumentError("Invalid input. The input item is null.");
+    }
+
+    String id = await getId(item);
+
+    return _collection.doc(id);
+  }
+
   Future<List<RecipeStep>> getAllRecipeStepById(String recipeId) async {
     if (recipeId.isEmpty) {
       throw ArgumentError("Invalid input.");
@@ -84,6 +94,13 @@ class RecipeStepDAO extends DAO<RecipeStep> {
     return;
   }
 
+  /// Add a delete operation of the input RecipeStep in the input batch.
+  /// [itemRef] the DocumentReference of the RecipeStep item to be deleted.
+  /// [batch] a WriteBatch to add the delete operation.
+  void deleteWithBatch(DocumentReference itemRef, WriteBatch batch) {
+    batch.delete(itemRef);
+  }
+
   @override
   Future<List<RecipeStep>> getAll() {
     // TODO: implement getAll
@@ -120,14 +137,50 @@ class RecipeStepDAO extends DAO<RecipeStep> {
   }
 
   @override
-  Future<String> getId(RecipeStep item) {
-    // TODO: implement getId
-    throw UnimplementedError();
+  Future<String> getId(RecipeStep item) async {
+    if (item == null) {
+      throw ArgumentError("Invalid input. The input item is null.");
+    }
+
+    final querySnapshot = await _collection
+        .where("recipeId", isEqualTo: item.recipeId)
+        .where("stepOrder", isEqualTo: item.stepOrder)
+        .get();
+
+    if (querySnapshot.docs.isEmpty) {
+      throw DataNotFoundException(
+        "The input RecipeStep doesn't exist.",
+        StackTrace.current,
+      );
+    }
+
+    return querySnapshot.docs.first.id;
   }
 
   @override
   Future<bool> exists(RecipeStep item) {
     // TODO: implement exists
     throw UnimplementedError();
+  }
+
+  /// Update the input RecipeStep item using the input batch
+  /// [item] the RecipeStep object to be updated
+  /// [itemRef] the DocumentReference of the input item
+  /// [batch] a WriteBatch
+  void updateWithBatch(
+    RecipeStep item,
+    DocumentReference itemRef,
+    WriteBatch batch,
+  ) {
+    if (item == null || itemRef == null) {
+      throw ArgumentError("Invalid input.");
+    }
+
+    batch.update(itemRef, {
+      "stepOrder": item.stepOrder,
+      "description": item.description,
+      "duration": item.duration,
+      "durationUnit": item.durationUnit,
+    });
   }
 }

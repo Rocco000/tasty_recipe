@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:tasty_recipe/Models/RecipeIngredient.dart';
 import 'package:tasty_recipe/Services/DAO.dart';
 import 'package:tasty_recipe/Utils/DataNotFoundException.dart';
+import 'package:tasty_recipe/Utils/UnknownDatabaseException.dart';
 
 class RecipeIngredientDAO extends DAO<RecipeIngredient> {
   final _collection = FirebaseFirestore.instance.collection("RecipeIngredient");
@@ -9,6 +10,16 @@ class RecipeIngredientDAO extends DAO<RecipeIngredient> {
   /// New document reference
   DocumentReference newRef() {
     return _collection.doc(); // auto-generates ID
+  }
+
+  Future<DocumentReference> getRef(RecipeIngredient item) async {
+    if (item == null) {
+      throw ArgumentError("Invalid input.");
+    }
+
+    String id = await getId(item);
+
+    return _collection.doc(id);
   }
 
   @override
@@ -38,6 +49,13 @@ class RecipeIngredientDAO extends DAO<RecipeIngredient> {
     }
   }
 
+  /// Add a delete operation of a RecipeIngredient item in the input batch
+  /// [itemRef] the DocumentReference of the RecipeIngredient item to be deleted
+  /// [batch] a WriteBatch
+  void deleteWithBatch(DocumentReference itemRef, WriteBatch batch) {
+    batch.delete(itemRef);
+  }
+
   Future<void> deleteByRecipeId(String recipeId, WriteBatch batch) async {
     // 1) Get all related ingredients
     final querySnapshot = await _collection
@@ -56,6 +74,25 @@ class RecipeIngredientDAO extends DAO<RecipeIngredient> {
       batch.delete(doc.reference);
     }
     return;
+  }
+
+  /// Update the input RecipeIngredient item using the input batch
+  /// [item] the RecipeIngrediet object to be updated
+  /// [itemRef] the DocumentReference of the input item
+  /// [batch] a WriteBatch
+  void updateWithBatch(
+    RecipeIngredient item,
+    DocumentReference itemRef,
+    WriteBatch batch,
+  ) {
+    if (item == null || itemRef == null) {
+      throw ArgumentError("Invalid input.");
+    }
+
+    batch.update(itemRef, {
+      "quantity": item.quantity,
+      "unitMeasurement": item.unitMeasurement,
+    });
   }
 
   @override
@@ -93,9 +130,20 @@ class RecipeIngredientDAO extends DAO<RecipeIngredient> {
   }
 
   @override
-  Future<String> getId(RecipeIngredient item) {
-    // TODO: implement getId
-    throw UnimplementedError();
+  Future<String> getId(RecipeIngredient item) async {
+    final querySnapshot = await _collection
+        .where("recipeId", isEqualTo: item.recipeId)
+        .where("ingredientId", isEqualTo: item.ingredientId)
+        .get();
+
+    if (querySnapshot.docs.isEmpty) {
+      throw DataNotFoundException(
+        "RecipeIngredient not found",
+        StackTrace.current,
+      );
+    }
+
+    return querySnapshot.docs.first.id;
   }
 
   Future<List<RecipeIngredient>> getRecipeIngredientsByRecipeId(
