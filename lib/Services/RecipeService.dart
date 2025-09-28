@@ -236,6 +236,66 @@ class RecipeService {
     }
   }
 
+  /// Return a list of favourite recipes
+  ///
+  /// Throw [DatabaseOperationException] if a FirebaseException is thrown while fetching the list of favourite recipes.
+  /// Throw [UnknownDatabaseException] if an unexpected error occurs while fetching the list of favourite recipes.
+  Future<List<Recipe>> getFavoriteRecipeList() async {
+    try {
+      return await _recipeDAO.getFavoriteRecipes();
+    } on DataNotFoundException catch (e) {
+      // There are no recipes in the favourite list
+      return [];
+    } on FirebaseException catch (e) {
+      throw DatabaseOperationException(
+        "An error occurred while fetching the list of favourite recipes.",
+        StackTrace.current,
+      );
+    } catch (e) {
+      throw UnknownDatabaseException(
+        "Unexpected error occurs while fetching the list of favourite recipes.",
+        StackTrace.current,
+      );
+    }
+  }
+
+  /// Return a list of recipes of a given category
+  /// - [category] a recipe category
+  ///
+  /// Throw [ArgumentError] if the input category is empty.
+  /// Throw [ValidationException] if the input category doesn't exist.
+  /// Throw [DatabaseOperationException] if a FirebaseException is thrown while fetching a recipe list by category
+  /// Throw [UnknownDatabaseException] if an unexpected error occurs while fetching a recipe list by category
+  Future<List<Recipe>> getRecipeListByCategory(String category) async {
+    if (category.isEmpty) {
+      throw ArgumentError("Invalid input. The input category is empty.");
+    }
+
+    if (!Recipe.categoryList.contains(category)) {
+      throw ValidationException(
+        "The required category doesn't exist.",
+        StackTrace.current,
+      );
+    }
+
+    try {
+      return await _recipeDAO.getRecipeByCategory(category);
+    } on DataNotFoundException catch (e) {
+      // There are no recipes for this category
+      return [];
+    } on FirebaseException catch (e) {
+      throw DatabaseOperationException(
+        "An error occurred while fetching a recipe list by category.",
+        StackTrace.current,
+      );
+    } catch (e) {
+      throw UnknownDatabaseException(
+        "Unexpected error occurs while fetching a recipe list by category.",
+        StackTrace.current,
+      );
+    }
+  }
+
   /// Update the favorite state of the given Recipe using the DAO class
   /// - [recipe] the recipe to be deleted.
   ///

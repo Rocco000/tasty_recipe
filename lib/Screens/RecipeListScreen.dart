@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:tasty_recipe/Models/Recipe.dart';
 import 'package:tasty_recipe/Screens/RecipeDetailsScreen.dart';
 import 'package:tasty_recipe/Services/RecipeListController.dart';
+import 'package:tasty_recipe/Utils/RecipeListResult.dart';
 import 'package:tasty_recipe/Widgets/MyBottomNavigationBar.dart';
 import 'package:tasty_recipe/Widgets/RecipeCardWidget.dart';
 
@@ -21,13 +22,13 @@ class RecipeListScreen extends StatefulWidget {
 class _RecipeListScreenState extends State<RecipeListScreen> {
   int _showedRecipe = 0;
   final PageController _pageController = PageController(viewportFraction: 0.85);
-  late Future<List<Recipe>> _recipeFutureList;
+  late Future<RecipeListResult> _futureResult;
 
   @override
   void initState() {
     super.initState();
 
-    _recipeFutureList = widget.controller.getRecipes();
+    _futureResult = widget.controller.getRecipes();
   }
 
   Widget _generateRecipeCard(Recipe recipe) {
@@ -39,7 +40,11 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
       recipeServing: recipe.servings,
       recipeCategory: recipe.category,
       recipeTags: recipe.tags,
-      onTap: () => Navigator.pushNamed(context, RecipeDetailsScreen.route, arguments: recipe.id),
+      onTap: () => Navigator.pushNamed(
+        context,
+        RecipeDetailsScreen.route,
+        arguments: recipe,
+      ),
     );
   }
 
@@ -79,8 +84,8 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
           title: const Text("Tasty Recipe"),
         ),
         backgroundColor: const Color(0xFFFFF9F4),
-        body: FutureBuilder<List<Recipe>>(
-          future: _recipeFutureList,
+        body: FutureBuilder<RecipeListResult>(
+          future: _futureResult,
           builder: (context, snapshot) {
             // Show loading spinner while waiting
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -96,19 +101,26 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
             }
 
             // Show error message if something went wrong
-            if (snapshot.hasError) {
-              print(snapshot.error);
+            if (snapshot.hasError || !snapshot.hasData) {
               return Center(
                 child: SizedBox(
                   width: MediaQuery.of(context).size.width * 0.8,
                   height: MediaQuery.of(context).size.height * 0.3,
                   child: Card(
-                    color: const Color(0xFFFFF9F4),// const Color.fromRGBO(230, 57, 70, 0.5),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    color: const Color(
+                      0xFFFFF9F4,
+                    ), // const Color.fromRGBO(230, 57, 70, 0.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     child: const Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: <Widget>[
-                        Icon(Icons.warning_amber_rounded, size: 48, color: Color(0xFFE63946),),
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          size: 48,
+                          color: Color(0xFFE63946),
+                        ),
                         Text(
                           "Something went wrong. Try again.",
                           style: TextStyle(
@@ -124,79 +136,121 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
               );
             }
 
-            // Show data when data is ready
-            if (snapshot.hasData) {
-              final List<Recipe> recipes = snapshot.data!;
+            final result = snapshot.data!;
 
-              // No data available for that filter
-              if (recipes.isEmpty) {
-                return Center(
-                  child: SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.8,
-                    height: MediaQuery.of(context).size.height * 0.3,
-                    child: Card(
-                      color: const Color(0xFFFFF9F4),// const Color.fromRGBO(230, 57, 70, 0.5),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      child: const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          Icon(Icons.warning_amber_rounded, size: 48, color: Color(0xFFFFD93D),),
-                          Text(
-                            "No recipes found!",
-                            style: TextStyle(
-                              color: Color(0xFF2E2E2E),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
+            // Show error message (handled errors)
+            if (result is RecipeListError) {
+              return Center(
+                child: SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.8,
+                  height: MediaQuery.of(context).size.height * 0.3,
+                  child: Card(
+                    color: const Color(
+                      0xFFFFF9F4,
+                    ), // const Color.fromRGBO(230, 57, 70, 0.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        const Icon(
+                          Icons.warning_amber_rounded,
+                          size: 48,
+                          color: Color(0xFFE63946),
+                        ),
+                        Text(
+                          result.message,
+                          style: const TextStyle(
+                            color: Color(0xFFE63946),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                );
-              } else {
-                return SingleChildScrollView(
-                  child: Column(
-                    children: <Widget>[
-                      const Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Text(
-                          "Your recipe",
+                ),
+              );
+            }
+
+            // Get data
+            final RecipeListSuccess output = result as RecipeListSuccess;
+            final List<Recipe> recipes = output.recipeList;
+
+            // No data available for that filter
+            if (recipes.isEmpty) {
+              return Center(
+                child: SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.8,
+                  height: MediaQuery.of(context).size.height * 0.3,
+                  child: Card(
+                    color: const Color(
+                      0xFFFFF9F4,
+                    ), // const Color.fromRGBO(230, 57, 70, 0.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          size: 48,
+                          color: Color(0xFFFFD93D),
+                        ),
+                        Text(
+                          "There are no recipes for this filter!",
                           style: TextStyle(
-                            fontSize: 28,
+                            color: Color(0xFF2E2E2E),
                             fontWeight: FontWeight.bold,
+                            fontSize: 16,
                           ),
                         ),
-                      ),
-
-                      Container(
-                        height: MediaQuery.of(context).size.height * 0.75,
-                        padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                        child: PageView.builder(
-                          controller: _pageController,
-                          itemCount: recipes.length,
-                          itemBuilder: (context, index) {
-                            return AnimatedPage(
-                              controller: _pageController,
-                              index: index,
-                              effect: const FadeEffect(),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10.0,
-                                ),
-                                child: _generateRecipeCard(recipes[index]),
-                              ),
-                            );
-                          },
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            } else {
+              return SingleChildScrollView(
+                child: Column(
+                  children: <Widget>[
+                    const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Text(
+                        "Your recipe",
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ],
-                  ),
-                );
-              }
-            } else {
-              // Something wrong, unusual
-              return Center(child: Text("Something went wrong. Try again."));
+                    ),
+
+                    Container(
+                      height: MediaQuery.of(context).size.height * 0.75,
+                      padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                      child: PageView.builder(
+                        controller: _pageController,
+                        itemCount: recipes.length,
+                        itemBuilder: (context, index) {
+                          return AnimatedPage(
+                            controller: _pageController,
+                            index: index,
+                            effect: const FadeEffect(),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10.0,
+                              ),
+                              child: _generateRecipeCard(recipes[index]),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              );
             }
           },
         ),

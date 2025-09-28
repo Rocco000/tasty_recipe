@@ -80,13 +80,26 @@ class RecipeDAO extends DAO<Recipe> {
     throw UnimplementedError();
   }
 
+  /// Return a list of recipes of a given category.
+  /// [categoryName] a recipe category.
+  ///
+  /// Throw [ArgumentError] if the input category is empty.
+  /// Throw [DataNotFoundException] if there are no recipes for the given category.
   Future<List<Recipe>> getRecipeByCategory(String categoryName) async {
-    if (categoryName.isEmpty)
-      throw ArgumentError("Invalid input. The parameter can't be null");
+    if (categoryName.isEmpty) {
+      throw ArgumentError("Invalid input. The parameter can't be empty");
+    }
 
     final querySnapshot = await _collection
         .where("category", isEqualTo: categoryName)
         .get();
+
+    if (querySnapshot.docs.isEmpty) {
+      throw DataNotFoundException(
+        "No recipe found for this category!",
+        StackTrace.current,
+      );
+    }
 
     return querySnapshot.docs.map((doc) {
       final itemData = doc.data();
@@ -105,11 +118,21 @@ class RecipeDAO extends DAO<Recipe> {
     }).toList();
   }
 
+  /// Return a list of favourite recipes from the database.
+  ///
+  /// Throw [DataNotFoundException] if there are no recipes in the favourite list.
   Future<List<Recipe>> getFavoriteRecipes() async {
     final querySnapshot = await FirebaseFirestore.instance
         .collection("Recipe")
         .where("favorite", isEqualTo: true)
         .get();
+
+    if (querySnapshot.docs.isEmpty) {
+      throw DataNotFoundException(
+        "There are no recipes in the favourite list!",
+        StackTrace.current,
+      );
+    }
 
     return querySnapshot.docs.map((doc) {
       final itemData = doc.data();
