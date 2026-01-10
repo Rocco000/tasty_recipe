@@ -1,28 +1,39 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:tasty_recipe/Models/CartItem.dart';
+import 'package:tasty_recipe/cart/models/entities/CartItem.dart';
 import 'package:tasty_recipe/Services/DAO.dart';
 import 'package:tasty_recipe/Utils/DataNotFoundException.dart';
 
 class CartItemDAO extends DAO<CartItem> {
+  final _collection = FirebaseFirestore.instance.collection("CartItem");
+
+  Future<DocumentReference> getRef(CartItem item) async {
+    String id = await getId(item);
+
+    return _collection.doc(id);
+  }
+
   @override
   Future<void> delete(CartItem item) async {
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection("CartItem")
-        .where("userId", isEqualTo: "io-prova")
+    final querySnapshot = await _collection
+        .where("userId", isEqualTo: item.userMail)
         .where("ingredientId", isEqualTo: item.ingredientId)
         .get();
 
     if (querySnapshot.docs.isEmpty) {
       throw DataNotFoundException(
-        "The item is not in the cart",
+        "The input item doesn't exist in the user's cart",
         StackTrace.current,
       );
     }
 
-    await FirebaseFirestore.instance
-        .collection("CartItem")
-        .doc(querySnapshot.docs[0].id)
-        .delete();
+    await _collection.doc(querySnapshot.docs[0].id).delete();
+  }
+
+  /// Add a delete operation of a CartItem in the input batch.
+  /// - [itemRef] the DocumentReference of the CartItem to be deleted.
+  /// - [batch] a WriteBatch.
+  void deleteWithBatch(DocumentReference itemRef, WriteBatch batch) {
+    batch.delete(itemRef);
   }
 
   @override
@@ -32,9 +43,17 @@ class CartItemDAO extends DAO<CartItem> {
   }
 
   @override
-  Future<String> getId(CartItem item) {
-    // TODO: implement getId
-    throw UnimplementedError();
+  Future<String> getId(CartItem item) async {
+    final querySnapshot = await _collection
+        .where("userId", isEqualTo: item.userMail)
+        .where("ingredientId", isEqualTo: item.ingredientId)
+        .get();
+
+    if (querySnapshot.docs.isEmpty) {
+      throw DataNotFoundException("CartItem not found", StackTrace.current);
+    }
+
+    return querySnapshot.docs.first.id;
   }
 
   @override
@@ -43,13 +62,20 @@ class CartItemDAO extends DAO<CartItem> {
     throw UnimplementedError();
   }
 
+  /// Return all items in the user's cart
+  /// - [userId] the user ID
+  ///
+  /// Return a list of CartItem
+  ///
+  /// Throw:
+  /// - [ArgumentError] if the input [userId] is empty.
+  /// - [DataNotFoundException] if there are no items in the user's cart.
   Future<List<CartItem>> getCartItemsByUser(String userId) async {
     if (userId.isEmpty) {
-      throw ArgumentError("Invalid input");
+      throw ArgumentError("Invalid input. The user ID can't be empty.");
     }
 
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection("CartItem")
+    final querySnapshot = await _collection
         .where("userId", isEqualTo: userId)
         .get();
 
@@ -60,7 +86,7 @@ class CartItemDAO extends DAO<CartItem> {
     return querySnapshot.docs.map((doc) {
       final itemData = doc.data();
       return CartItem(
-        "prova@gmail.com",
+        itemData["userId"] as String,
         itemData["ingredientId"] as String,
         false,
       );
@@ -73,7 +99,10 @@ class CartItemDAO extends DAO<CartItem> {
 
     final newCartItemRef = await FirebaseFirestore.instance
         .collection("CartItem")
-        .add({"ingredientId": newItem.ingredientId, "userId": "io-prova"});
+        .add({
+          "ingredientId": newItem.ingredientId,
+          "userId": newItem.userMail,
+        });
 
     return newCartItemRef.id;
   }
@@ -84,7 +113,7 @@ class CartItemDAO extends DAO<CartItem> {
 
     final querySnapshot = await FirebaseFirestore.instance
         .collection("CartItem")
-        .where("userdId", isEqualTo: "io-prova")
+        .where("userdId", isEqualTo: item.userMail)
         .where("ingredientId", isEqualTo: item.ingredientId)
         .get();
 

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:tasty_recipe/Models/CartItem.dart';
-import 'package:tasty_recipe/Models/Ingredient.dart';
-import 'package:tasty_recipe/Services/CartController.dart';
+import 'package:tasty_recipe/cart/models/entities/CartItem.dart';
+import 'package:tasty_recipe/recipe/models/entities/Ingredient.dart';
+import 'package:tasty_recipe/cart/CartController.dart';
+import 'package:tasty_recipe/cart/CartItemListResult.dart';
 import 'package:tasty_recipe/Widgets/MyBottomNavigationBar.dart';
 
 class CartScreen extends StatefulWidget {
@@ -17,7 +18,7 @@ class CartScreen extends StatefulWidget {
 class _CartScreenState extends State<CartScreen> {
   late List<CartItem> _uncheckedItems;
   late List<Ingredient> _ingredientList;
-  late Future<(List<CartItem>, List<Ingredient>)> _cartFuture;
+  late Future<CartItemListResult> _cartFuture;
 
   List<Ingredient> _checkedIngredients = [];
   List<CartItem> _checkedItems = [];
@@ -25,7 +26,7 @@ class _CartScreenState extends State<CartScreen> {
   @override
   void initState() {
     super.initState();
-    _cartFuture = widget._controller.getAllCartItems();
+    _cartFuture = widget._controller.getAllCartItems("prova@gmail.com");
   }
 
   Widget _generateUncheckedItem(int index) {
@@ -193,15 +194,7 @@ class _CartScreenState extends State<CartScreen> {
     ];
   }
 
-  Widget _generateErrorMessage(Object error) {
-    String msg = error.toString();
-    final index = msg.indexOf(":");
-    if (index != -1 && index < msg.length - 1) {
-      msg = msg.substring(index + 1).trim();
-    } else {
-      msg = "Something went wrong. Try again";
-    }
-
+  Widget _generateErrorMessage(String errorMsg) {
     return Center(
       child: SizedBox(
         width: MediaQuery.of(context).size.width * 0.8,
@@ -222,7 +215,7 @@ class _CartScreenState extends State<CartScreen> {
                 color: Color(0xFFE63946),
               ),
               Text(
-                msg,
+                errorMsg,
                 style: const TextStyle(
                   color: Color(0xFFE63946),
                   fontWeight: FontWeight.bold,
@@ -245,7 +238,7 @@ class _CartScreenState extends State<CartScreen> {
           foregroundColor: Colors.white,
           title: const Text("Tasty Recipe"),
         ),
-        body: FutureBuilder<(List<CartItem>, List<Ingredient>)>(
+        body: FutureBuilder<CartItemListResult>(
           future: _cartFuture,
           builder: (context, snapshot) {
             // Show loading spinner while waiting
@@ -262,15 +255,19 @@ class _CartScreenState extends State<CartScreen> {
             }
 
             // Show error message if something went wrong
-            if (snapshot.hasError) {
-              print(snapshot.error);
-              return _generateErrorMessage(snapshot.error!);
+            if (snapshot.hasError || !snapshot.hasData) {
+              return _generateErrorMessage("Something went wrong. Try again.");
             }
 
-            final (List<CartItem> items, List<Ingredient> ingredients) =
-                snapshot.data!;
-            _uncheckedItems = items;
-            _ingredientList = ingredients;
+            final result = snapshot.data!;
+            if (result is CartItemListError) {
+              return _generateErrorMessage(result.message);
+            }
+
+            final CartItemListSuccess output = result as CartItemListSuccess;
+
+            _uncheckedItems = output.items;
+            _ingredientList = output.ingredients;
 
             return CustomScrollView(
               slivers: <Widget>[
