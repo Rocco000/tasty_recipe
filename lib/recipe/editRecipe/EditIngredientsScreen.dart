@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:tasty_recipe/Models/Ingredient.dart';
-import 'package:tasty_recipe/Models/Recipe.dart';
-import 'package:tasty_recipe/Models/RecipeIngredient.dart';
-import 'package:tasty_recipe/Screens/EditRecipeStepsScreen.dart';
-import 'package:tasty_recipe/Services/RecipeEditController.dart';
+
+import 'package:tasty_recipe/recipe/models/entities/Ingredient.dart';
+import 'package:tasty_recipe/recipe/models/entities/RecipeIngredient.dart';
+import 'package:tasty_recipe/recipe/editRecipe/EditRecipeStepsScreen.dart';
+import 'package:tasty_recipe/recipe/editRecipe/RecipeEditController.dart';
 import 'package:tasty_recipe/Widgets/DottedButtonWidget.dart';
 import 'package:tasty_recipe/Widgets/IngredientFormField.dart';
 
@@ -21,9 +22,7 @@ class EditIngredientsScreen extends StatefulWidget {
 class _EditIngredientsScreenState extends State<EditIngredientsScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
 
-  late RecipeEditController _controller;
-
-  late Recipe _recipe;
+  late String _recipeID;
   late List<Ingredient> _oldIngredients;
   late List<RecipeIngredient> _oldRecipeIngredients;
 
@@ -33,19 +32,27 @@ class _EditIngredientsScreenState extends State<EditIngredientsScreen> {
   @override
   void initState() {
     super.initState();
+
     // Get controller instance
-    _controller = Provider.of<RecipeEditController>(context, listen: false);
+    final RecipeEditController controller = Provider.of<RecipeEditController>(
+      context,
+      listen: false,
+    );
 
     // Get old recipe ingredient version
-    _recipe = _controller.oldRecipe;
-    List<RecipeIngredient> controllerRecipeIngredient =
-        _controller.oldRecipeIngredientList;
-    List<Ingredient> controllerIngredient = _controller.oldIngredients;
+    _recipeID = controller.oldRecipe.id;
 
+    List<RecipeIngredient> controllerRecipeIngredient =
+        controller.oldRecipeIngredientList;
+    List<Ingredient> controllerIngredient = controller.oldIngredients;
+
+    // Clone old version of RecipeIngredient list
     _oldRecipeIngredients = List.generate(
       controllerRecipeIngredient.length,
       (index) => controllerRecipeIngredient[index].clone(),
     );
+
+    // Clone old version of Ingredient list
     _oldIngredients = List.generate(
       controllerIngredient.length,
       (index) => controllerIngredient[index].clone(),
@@ -55,6 +62,58 @@ class _EditIngredientsScreenState extends State<EditIngredientsScreen> {
 
     // Define Dismissible Widget IDs for existing ingredients
     _idList = List.generate(_numIngredients, (index) => index);
+  }
+
+  void _onContinuePressed() {
+    if (_formKey.currentState!.saveAndValidate()) {
+      final formFields = _formKey.currentState!.value;
+      List<RecipeIngredient> newRecipeIngredientList = [];
+      List<Ingredient> newIngredients = [];
+
+      for (int i = 0; i < _numIngredients; i++) {
+        String quantity = formFields["ingredientQuantity$i"] as String;
+
+        if (i < _oldRecipeIngredients.length) {
+          newRecipeIngredientList.add(
+            RecipeIngredient(
+              _recipeID,
+              _oldRecipeIngredients[i].ingredientId,
+              double.parse(quantity),
+              formFields["ingredientUnit$i"] as String,
+            ),
+          );
+
+          newIngredients.add(_oldIngredients[i]);
+        } else {
+          final String newIngredientName =
+              formFields["ingredientName$i"] as String;
+          newRecipeIngredientList.add(
+            RecipeIngredient(
+              _recipeID,
+              "tempID$i",
+              double.parse(quantity),
+              formFields["ingredientUnit$i"] as String,
+            ),
+          );
+          newIngredients.add(
+            Ingredient("tempID$i", newIngredientName.trim().toLowerCase()),
+          );
+        }
+      }
+
+      // Get controller instance
+      final RecipeEditController controller = Provider.of<RecipeEditController>(
+        context,
+        listen: false,
+      );
+
+      // Store changes in the controller class
+      controller.updateIngredients(newIngredients);
+      controller.updateRecipeIngredient(newRecipeIngredientList);
+
+      // Navigate to the Next Edit Screen
+      context.push(EditRecipeStepsScreen.route);
+    }
   }
 
   Widget _generateIngredientField(int index) {
@@ -107,13 +166,11 @@ class _EditIngredientsScreenState extends State<EditIngredientsScreen> {
       child: (index <= _oldRecipeIngredients.length - 1)
           ? IngredientFormField(
               ingredientNumber: index,
-              ingredientList: _oldIngredients,
               ingredientName: _oldIngredients[index].name,
               recipeIngredient: _oldRecipeIngredients[index],
             )
           : IngredientFormField(
               ingredientNumber: index,
-              ingredientList: _oldIngredients,
               ingredientName: null,
               recipeIngredient: null,
             ),
@@ -130,10 +187,14 @@ class _EditIngredientsScreenState extends State<EditIngredientsScreen> {
           title: const Text("Tasty Recipe"),
           leading: IconButton(
             onPressed: () {
+              final RecipeEditController controller =
+                  Provider.of<RecipeEditController>(context, listen: false);
+
               // Clear temporary data stored in the Controller object before going back to the previous screen
-              _controller.clearIngredients();
-              _controller.clearRecipeIngredientList();
-              Navigator.pop(context);
+              controller.clearIngredients();
+              controller.clearRecipeIngredientList();
+
+              context.pop();
             },
             icon: Icon(Icons.arrow_back),
           ),
@@ -189,57 +250,7 @@ class _EditIngredientsScreenState extends State<EditIngredientsScreen> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10.0),
                   child: ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.saveAndValidate()) {
-                        final formFields = _formKey.currentState!.value;
-                        List<RecipeIngredient> newRecipeIngredientList = [];
-                        List<Ingredient> newIngredients = [];
-
-                        for (int i = 0; i < _numIngredients; i++) {
-                          String quantity =
-                              formFields["ingredientQuantity$i"] as String;
-
-                          if (i < _oldRecipeIngredients.length) {
-                            newRecipeIngredientList.add(
-                              RecipeIngredient(
-                                _recipe.id,
-                                _oldRecipeIngredients[i].ingredientId,
-                                double.parse(quantity),
-                                formFields["ingredientUnit$i"] as String,
-                              ),
-                            );
-
-                            newIngredients.add(_oldIngredients[i]);
-                          } else {
-                            final String newIngredientName =
-                                formFields["ingredientName$i"] as String;
-                            newRecipeIngredientList.add(
-                              RecipeIngredient(
-                                _recipe.id,
-                                "tempID$i",
-                                double.parse(quantity),
-                                formFields["ingredientUnit$i"] as String,
-                              ),
-                            );
-                            newIngredients.add(
-                              Ingredient(
-                                "tempID$i",
-                                newIngredientName.trim().toLowerCase(),
-                              ),
-                            );
-                          }
-                        }
-
-                        _controller.updateIngredients(newIngredients);
-                        _controller.updateRecipeIngredient(
-                          newRecipeIngredientList,
-                        );
-                        Navigator.pushNamed(
-                          context,
-                          EditRecipeStepsScreen.route,
-                        );
-                      }
-                    },
+                    onPressed: _onContinuePressed,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blueAccent,
                       foregroundColor: Colors.white,

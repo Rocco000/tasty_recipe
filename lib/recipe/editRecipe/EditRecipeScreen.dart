@@ -2,15 +2,16 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:tasty_recipe/Models/Recipe.dart';
-import 'package:tasty_recipe/Screens/EditIngredientsScreen.dart';
-import 'package:tasty_recipe/Services/RecipeEditController.dart';
+import 'package:tasty_recipe/recipe/models/entities/Recipe.dart';
+import 'package:tasty_recipe/recipe/editRecipe/EditIngredientsScreen.dart';
+import 'package:tasty_recipe/recipe/editRecipe/RecipeEditController.dart';
 import 'package:tasty_recipe/Widgets/RecipeGeneralInfoForm.dart';
 
 class EditRecipeScreen extends StatefulWidget {
-  static const String route = "/editRecipe";
+  static const String route = "/editRecipeGeneralInfo";
 
   const EditRecipeScreen({super.key});
 
@@ -23,19 +24,22 @@ class EditRecipeScreen extends StatefulWidget {
 class _EditRecipeScreenState extends State<EditRecipeScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
 
-  late RecipeEditController _controller;
-  late Recipe _oldRecipe;
+  late String _oldRecipeName;
   late Recipe _newRecipe;
 
   @override
   void initState() {
     super.initState();
-    // Get controller instance
-    _controller = Provider.of<RecipeEditController>(context, listen: false);
 
-    // Get old recipe version
-    _oldRecipe = _controller.oldRecipe;
-    _newRecipe = _oldRecipe.clone();
+    // Get the controller instance
+    final RecipeEditController controller = Provider.of<RecipeEditController>(
+      context,
+      listen: false,
+    );
+
+    // Clone the old recipe version
+    _oldRecipeName = controller.oldRecipe.name;
+    _newRecipe = controller.oldRecipe.clone();
   }
 
   Future _pickImageFromGallery() async {
@@ -46,6 +50,33 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
       setState(() {
         _newRecipe.image = File(img.path);
       });
+    }
+  }
+
+  void _onContinuePressed() {
+    if (_formKey.currentState!.saveAndValidate()) {
+      final formFields = _formKey.currentState!.value;
+      // Save changes
+      final String newRecipeName = formFields["recipeName"] as String;
+      final String duration = formFields["recipeDuration"] as String;
+      final String servings = formFields["recipeServing"] as String;
+
+      _newRecipe.name = newRecipeName.trim();
+      _newRecipe.duration = int.parse(duration);
+      _newRecipe.servings = int.parse(servings);
+      _newRecipe.category = formFields["recipeCategory"] as String;
+
+      // Get controller instance
+      final RecipeEditController controller = Provider.of<RecipeEditController>(
+        context,
+        listen: false,
+      );
+
+      // Store changes in the controller class
+      controller.updateGeneralInfo(_newRecipe);
+
+      // Go to the next screen
+      context.push(EditIngredientsScreen.route);
     }
   }
 
@@ -74,7 +105,7 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
                       height: 100,
                     ),
                     Text(
-                      "Edit recipe: ${_oldRecipe!.name}",
+                      "Edit recipe: $_oldRecipeName",
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
@@ -110,29 +141,7 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
               ),
 
               ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.saveAndValidate()) {
-                    final formFields = _formKey.currentState!.value;
-                    // Save changes
-                    final String newRecipeName =
-                        formFields["recipeName"] as String;
-                    final String duration =
-                        formFields["recipeDuration"] as String;
-                    final String servings =
-                        formFields["recipeServing"] as String;
-
-                    _newRecipe.name = newRecipeName.trim();
-                    _newRecipe.duration = int.parse(duration);
-                    _newRecipe.servings = int.parse(servings);
-                    _newRecipe.category =
-                        formFields["recipeCategory"] as String;
-
-                    _controller.updateGeneralInfo(_newRecipe);
-
-                    // Go to the next screen
-                    Navigator.pushNamed(context, EditIngredientsScreen.route);
-                  }
-                },
+                onPressed: _onContinuePressed,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blueAccent,
                   foregroundColor: Colors.white,
