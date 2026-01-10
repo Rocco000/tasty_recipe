@@ -1,5 +1,9 @@
-import 'package:tasty_recipe/Models/Recipe.dart';
-import 'package:tasty_recipe/Services/RecipeService.dart';
+import 'package:tasty_recipe/recipe/models/entities/Ingredient.dart';
+import 'package:tasty_recipe/recipe/models/entities/Recipe.dart';
+import 'package:tasty_recipe/recipe/models/entities/RecipeAggregate.dart';
+import 'package:tasty_recipe/recipe/models/entities/RecipeIngredient.dart';
+import 'package:tasty_recipe/recipe/models/entities/RecipeStep.dart';
+import 'package:tasty_recipe/recipe/services/RecipeService.dart';
 import 'package:tasty_recipe/Utils/DatabaseOperationException.dart';
 import 'package:tasty_recipe/Utils/RecipeFilter.dart';
 import 'package:tasty_recipe/Utils/RecipeListResult.dart';
@@ -58,5 +62,37 @@ class RecipeListController {
 
   Future<List<Recipe>> _onDessertCardPressed() async {
     return await _service.getRecipeListByCategory("Dessert");
+  }
+
+  /// Get all data of the given recipe (ingredients and steps)
+  ///
+  /// - [recipe] a Recipe object
+  ///
+  /// Returns a [RecipeAggregate] that contains all recipe data
+  Future<RecipeAggregate> onRecipeCardPressed(Recipe recipe) async {
+    // 1) GET RECIPE INGREDIENT (N:N)
+    final List<RecipeIngredient> recipeIngredients = await _service
+        .getRecipeIngredients(recipe.id);
+
+    // 2) GET INGREDIENTS
+    List<String> ingredientIds = [];
+
+    for (RecipeIngredient item in recipeIngredients) {
+      ingredientIds.add(item.ingredientId);
+    }
+
+    final List<Ingredient> ingredients = await _service.getIngredients(
+      ingredientIds,
+    );
+
+    // 3) GET STEPS
+    final List<RecipeStep> steps = await _service.getRecipeSteps(recipe.id);
+
+    return RecipeAggregate(
+      recipe: recipe,
+      ingredients: ingredients,
+      recipeIngredients: recipeIngredients,
+      steps: steps,
+    );
   }
 }

@@ -1,8 +1,10 @@
 import 'package:animated_item/animated_item.dart';
 import 'package:flutter/material.dart';
-import 'package:tasty_recipe/Models/Recipe.dart';
-import 'package:tasty_recipe/Screens/RecipeDetailsScreen.dart';
-import 'package:tasty_recipe/Services/RecipeListController.dart';
+import 'package:go_router/go_router.dart';
+import 'package:tasty_recipe/recipe/models/entities/Recipe.dart';
+import 'package:tasty_recipe/recipe/models/entities/RecipeAggregate.dart';
+import 'package:tasty_recipe/recipe/viewRecipe/RecipeDetailsScreen.dart';
+import 'package:tasty_recipe/recipe/browseRecipe/RecipeListController.dart';
 import 'package:tasty_recipe/Utils/RecipeListResult.dart';
 import 'package:tasty_recipe/Widgets/MyBottomNavigationBar.dart';
 import 'package:tasty_recipe/Widgets/RecipeCardWidget.dart';
@@ -40,11 +42,14 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
       recipeServing: recipe.servings,
       recipeCategory: recipe.category,
       recipeTags: recipe.tags,
-      onTap: () => Navigator.pushNamed(
-        context,
-        RecipeDetailsScreen.route,
-        arguments: recipe,
-      ),
+      onTap: () async {
+        // Get recipe data
+        final RecipeAggregate recipeData = await widget.controller
+            .onRecipeCardPressed(recipe);
+
+        // Navigate to the recipe screen
+        context.go(RecipeDetailsScreen.route, extra: recipeData);
+      },
     );
   }
 
