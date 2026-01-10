@@ -1,8 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:tasty_recipe/Models/RecipeIngredient.dart';
+import 'package:tasty_recipe/recipe/models/entities/RecipeIngredient.dart';
 import 'package:tasty_recipe/Services/DAO.dart';
 import 'package:tasty_recipe/Utils/DataNotFoundException.dart';
-import 'package:tasty_recipe/Utils/UnknownDatabaseException.dart';
 
 class RecipeIngredientDAO extends DAO<RecipeIngredient> {
   final _collection = FirebaseFirestore.instance.collection("RecipeIngredient");

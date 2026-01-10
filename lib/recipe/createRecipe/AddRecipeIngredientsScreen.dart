@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:tasty_recipe/Models/Ingredient.dart';
-import 'package:tasty_recipe/Screens/AddRecipeStepsScreen.dart';
-import 'package:tasty_recipe/Services/RecipeCreationController.dart';
+import 'package:tasty_recipe/recipe/createRecipe/AddRecipeStepsScreen.dart';
+import 'package:tasty_recipe/recipe/createRecipe/RecipeCreationController.dart';
 import 'package:tasty_recipe/Utils/InvalidFieldException.dart';
 import 'package:tasty_recipe/Widgets/IngredientFormField.dart';
 import 'package:tasty_recipe/Widgets/DottedButtonWidget.dart';
@@ -22,21 +22,12 @@ class AddRecipeIngredientsScreen extends StatefulWidget {
 class _AddRecipeIngredientsState extends State<AddRecipeIngredientsScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
 
-  final List<Ingredient> _allIngredients = [
-    Ingredient("0", "Chocolate"),
-    Ingredient("1", "Milk"),
-    Ingredient("2", "Wheat"),
-    Ingredient("3", "Lime"),
-  ];
   final List<int> _ingredientIds = [0];
   int _numIngredients = 1;
 
   Widget _generateIngredientField(int index, int id) {
     return (index == 0)
-        ? IngredientFormField(
-            ingredientNumber: index,
-            ingredientList: _allIngredients,
-          )
+        ? IngredientFormField(ingredientNumber: index)
         : Dismissible(
             key: ValueKey<int>(id),
             background: DecoratedBox(
@@ -64,10 +55,7 @@ class _AddRecipeIngredientsState extends State<AddRecipeIngredientsScreen> {
                 "ingredientQuantity$index",
               );
             },
-            child: IngredientFormField(
-              ingredientNumber: index,
-              ingredientList: _allIngredients,
-            ),
+            child: IngredientFormField(ingredientNumber: index),
           );
   }
 
@@ -78,9 +66,9 @@ class _AddRecipeIngredientsState extends State<AddRecipeIngredientsScreen> {
       for (int i = 0; i < _numIngredients; i++) {
         try {
           controller.addIngredient(
-            formFields["ingredientName$i"],
+            formFields["ingredientName$i"] as String,
             double.parse(formFields["ingredientQuantity$i"]),
-            formFields["ingredientUnit$i"],
+            formFields["ingredientUnit$i"] as String,
           );
         } on InvalidFieldException catch (e) {
           // Highlight with a red border the correct invalid field
@@ -99,7 +87,7 @@ class _AddRecipeIngredientsState extends State<AddRecipeIngredientsScreen> {
       }
 
       // Move to the next screen
-      Navigator.pushNamed(context, AddRecipeStepsScreen.route);
+      context.push(AddRecipeStepsScreen.route);
     }
   }
 
@@ -116,8 +104,9 @@ class _AddRecipeIngredientsState extends State<AddRecipeIngredientsScreen> {
           foregroundColor: Colors.white,
           leading: IconButton(
             onPressed: () {
-              Navigator.pop(context);
+              // Navigate back and clear the ingredient list
               controller.clearIngredients();
+              context.pop();
             },
             icon: Icon(Icons.arrow_back),
           ),

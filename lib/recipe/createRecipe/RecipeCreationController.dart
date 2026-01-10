@@ -1,14 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:tasty_recipe/Models/Ingredient.dart';
-import 'package:tasty_recipe/Models/Recipe.dart';
-import 'package:tasty_recipe/Models/RecipeIngredient.dart';
-import 'package:tasty_recipe/Models/RecipeStep.dart';
-import 'package:tasty_recipe/Services/IngredientDAO.dart';
-import 'package:tasty_recipe/Services/RecipeDAO.dart';
-import 'package:tasty_recipe/Services/RecipeIngredientDAO.dart';
-import 'package:tasty_recipe/Services/RecipeService.dart';
-import 'package:tasty_recipe/Services/RecipeStepDAO.dart';
+import 'package:tasty_recipe/recipe/models/entities/Ingredient.dart';
+import 'package:tasty_recipe/recipe/models/entities/Recipe.dart';
+import 'package:tasty_recipe/recipe/models/entities/RecipeAggregate.dart';
+import 'package:tasty_recipe/recipe/models/entities/RecipeIngredient.dart';
+import 'package:tasty_recipe/recipe/models/entities/RecipeStep.dart';
+import 'package:tasty_recipe/recipe/services/RecipeService.dart';
 import 'package:tasty_recipe/Utils/DatabaseOperationException.dart';
 import 'package:tasty_recipe/Utils/InvalidFieldException.dart';
 import 'package:tasty_recipe/Utils/UnknownDatabaseException.dart';
@@ -20,7 +16,11 @@ class RecipeCreationController extends ChangeNotifier {
   List<RecipeStep> _recipeStepList = [];
   List<RecipeIngredient> _recipeIngredientList = [];
 
-  RecipeService _service = RecipeService();
+  RecipeAggregate? _createdRecipe;
+
+  final RecipeService _service = RecipeService();
+
+  RecipeAggregate get createdRecipe => _createdRecipe!;
 
   /// Temporarly store the recipe general info
   /// - [recipeName]: the recipe name.
@@ -97,11 +97,6 @@ class RecipeCreationController extends ChangeNotifier {
     );
   }
 
-  /// Clear the temporary recipe general info stored in Recipe object
-  void clearRecipe() {
-    // _recipe = null;
-  }
-
   /// Temporarly store an ingredient and its corresponding quantity for that recipe
   /// - [ingredientName]: the ingredient name.
   /// - [ingredientQuantity]: the ingredient quantity for that recipe.
@@ -144,6 +139,8 @@ class RecipeCreationController extends ChangeNotifier {
     _recipeIngredientList.add(
       RecipeIngredient("0", "0", ingredientQuantity, unitMeasurement),
     );
+
+    print("Recipe: ${_recipe.name}, duration: ${_recipe.duration}");
     print("Added $ingredientName");
   }
 
@@ -212,15 +209,19 @@ class RecipeCreationController extends ChangeNotifier {
     _recipeStepList.clear();
   }
 
-  /// Create a new recipe in the DB
+  /// Create a new recipe in the DB using the service class
   Future<(bool, String)> createNewRecipe() async {
     try {
-      await _service.createRecipe(
+      _createdRecipe = await _service.createRecipe(
         _recipe,
         _ingredientList,
         _recipeIngredientList,
         _recipeStepList,
       );
+
+      if (_createdRecipe != null) {
+        print("SALVATA RICETTA IN CONTROLLER");
+      }
 
       clear();
       notifyListeners();

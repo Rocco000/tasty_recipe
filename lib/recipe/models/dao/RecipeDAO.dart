@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:tasty_recipe/Models/Recipe.dart';
+import 'package:tasty_recipe/recipe/models/entities/Recipe.dart';
 import 'package:tasty_recipe/Services/DAO.dart';
 import 'package:tasty_recipe/Utils/DataNotFoundException.dart';
 import 'package:tasty_recipe/Utils/DatabaseOperationException.dart';

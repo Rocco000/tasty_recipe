@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:tasty_recipe/Models/RecipeStep.dart';
+import 'package:tasty_recipe/recipe/models/entities/RecipeStep.dart';
 import 'package:tasty_recipe/Services/DAO.dart';
 import 'package:tasty_recipe/Utils/DataNotFoundException.dart';
 

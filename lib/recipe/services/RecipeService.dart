@@ -1,12 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:tasty_recipe/Models/Ingredient.dart';
-import 'package:tasty_recipe/Models/Recipe.dart';
-import 'package:tasty_recipe/Models/RecipeIngredient.dart';
-import 'package:tasty_recipe/Models/RecipeStep.dart';
-import 'package:tasty_recipe/Services/IngredientDAO.dart';
-import 'package:tasty_recipe/Services/RecipeDAO.dart';
-import 'package:tasty_recipe/Services/RecipeIngredientDAO.dart';
-import 'package:tasty_recipe/Services/RecipeStepDAO.dart';
+import 'package:tasty_recipe/recipe/models/entities/Ingredient.dart';
+import 'package:tasty_recipe/recipe/models/entities/Recipe.dart';
+import 'package:tasty_recipe/recipe/models/entities/RecipeAggregate.dart';
+import 'package:tasty_recipe/recipe/models/entities/RecipeIngredient.dart';
+import 'package:tasty_recipe/recipe/models/entities/RecipeStep.dart';
+import 'package:tasty_recipe/recipe/models/dao/IngredientDAO.dart';
+import 'package:tasty_recipe/recipe/models/dao/RecipeDAO.dart';
+import 'package:tasty_recipe/recipe/models/dao/RecipeIngredientDAO.dart';
+import 'package:tasty_recipe/recipe/models/dao/RecipeStepDAO.dart';
 import 'package:tasty_recipe/Utils/DataNotFoundException.dart';
 import 'package:tasty_recipe/Utils/DatabaseOperationException.dart';
 import 'package:tasty_recipe/Utils/UnknownDatabaseException.dart';
@@ -24,11 +25,13 @@ class RecipeService {
   /// - [recipeIngredientList]: a list of RecipeIngredient objects. Each object represent an item in the relation table between Recipe and Ingredient.
   /// - [stepList]: the recipe steps
   ///
+  /// Returns a [RecipeAggregate] that contains the created recipe with corresponding IDs
+  ///
   /// Throw [DatabaseOperationException] if an error occurred during the transaction.
   /// Throw [ValidationException] if the total step duration doesn't match recipe duration.
   /// Throw [DatabaseOperationException] if an error occurred during the transaction.
   /// Throw [UnknownDatabaseException] if an unexpected error is thrown.
-  Future<void> createRecipe(
+  Future<RecipeAggregate> createRecipe(
     Recipe newRecipe,
     List<Ingredient> ingredientList,
     List<RecipeIngredient> recipeIngredientList,
@@ -66,12 +69,18 @@ class RecipeService {
     // Define a batch to run a transaction
     final batch = FirebaseFirestore.instance.batch();
 
+    // --- RECIPE ---
     // 1.1) Get the reference of the new document and its ID
     DocumentReference recipeRef = _recipeDAO.newRef();
     newRecipe.id = recipeRef.id;
 
     // 1.2) Store the new recipe
     _recipeDAO.saveWithBatch(recipeRef, newRecipe, batch);
+
+    // --- INGREDIENT ---
+
+    List<Ingredient> ingredientsWithID = [];
+    List<RecipeIngredient> recipeIngredientWithID = [];
 
     // 2.1) Get the ingredient ID or eventually create a new one
     for (int i = 0; i < ingredientList.length; i++) {
@@ -86,9 +95,16 @@ class RecipeService {
         _ingredientDAO.saveWithBatch(ingredientRef, ingredientList[i], batch);
       }
 
+      // Set the right ID and store it in aggregate
+      ingredientList[i].id = ingredientId;
+      ingredientsWithID.add(ingredientList[i]);
+
+      // --- RECIPE INGREDIENTS (N:N) ---
       // 2.2) Update the RecipeIngredient keys
       recipeIngredientList[i].recipeId = newRecipe.id;
       recipeIngredientList[i].ingredientId = ingredientId;
+
+      recipeIngredientWithID.add(recipeIngredientList[i]);
 
       // 2.3)  Store the RecipeIngredient items
       DocumentReference recipeIngredientRef = _recipeIngredientDAO.newRef();
@@ -99,6 +115,9 @@ class RecipeService {
       );
     }
 
+    // --- STEPS ---
+    List<RecipeStep> stepsWithID = [];
+
     // 3) Store recipe steps
     for (RecipeStep step in stepList) {
       // Update foreign key
@@ -108,10 +127,18 @@ class RecipeService {
       DocumentReference stepRef = _recipeStepDAO.newRef();
 
       _recipeStepDAO.saveWithBatch(stepRef, step, batch);
+
+      stepsWithID.add(step);
     }
 
     try {
       await batch.commit();
+      return RecipeAggregate(
+        recipe: newRecipe,
+        ingredients: ingredientsWithID,
+        recipeIngredients: recipeIngredientWithID,
+        steps: stepsWithID,
+      );
     } on FirebaseException catch (e, st) {
       throw DatabaseOperationException(
         "An error occurred during the transaction. Failed to save the new recipe",
@@ -348,11 +375,13 @@ class RecipeService {
   /// [newIngredients] a list of new Ingredient items
   /// [batch] a WriteBatch to add CRUD operations
   ///
+  /// Returns two List objects, the first one contains the updated Ingredient while the second one contains the updated RecipeIngredient.
+  ///
   /// Throw [ArgumentError] if any of the input list is empty or if the lenght of the Ingredient list doesn't match the corresponsind RecipeIngredient list
   /// Throw [ValidationException] if the new recipe's ingredient list contains duplicates.
   /// Throw [DatabaseOperationException] if the item to be deleted or updated doesn't exist in the database
   /// Throw [UnknownDatabaseException] if an unexpected error occurs during the retriving of the DocumentReference of a certain item.
-  Future<void> _updateRecipeIngredient(
+  Future<(List<Ingredient>, List<RecipeIngredient>)> _updateRecipeIngredient(
     List<RecipeIngredient> oldRecipeIngredientList,
     List<RecipeIngredient> newRecipeIngredientList,
     List<Ingredient> oldIngredients,
@@ -384,16 +413,17 @@ class RecipeService {
 
     // Store ingredient names of the old recipe version
     List<String> oldIngredietNames = [];
-    oldIngredients.forEach(
-      (ingredient) => oldIngredietNames.add(ingredient.name),
-    );
+
+    for (Ingredient item in oldIngredients) {
+      oldIngredietNames.add(item.name);
+    }
 
     List<RecipeIngredient> recipeingredientToDelete = [];
     List<RecipeIngredient> recipeingredientToUpdate = [];
     List<RecipeIngredient> recipeingredietToAdd = [];
     List<Ingredient> ingredientsToCreate = [];
 
-    // 1) Check for INSERT operations
+    // ------- CHECK FOR CREATE OPERATIONS -------
     for (int i = 0; i < newRecipeIngredientList.length; i++) {
       if (newRecipeIngredientList[i].ingredientId.startsWith("tempID")) {
         if (oldIngredietNames.contains(newIngredients[i].name)) {
@@ -403,13 +433,16 @@ class RecipeService {
           );
           newRecipeIngredientList[i].ingredientId =
               oldIngredients[ingredientIndex].id;
+
+          newIngredients[i].id = oldIngredients[ingredientIndex].id;
         } else {
-          // 1.2) If the ingredient is not present in the old list --> ADD
+          // 1.2) If the ingredient is not present in the old list --> CREATE RecipeIngredient
 
           try {
             // 1.3) If the new ingredients exist in the DB --> Update the ingredientId in the RecipeIngredient object
             final String id = await _ingredientDAO.getId(newIngredients[i]);
             newRecipeIngredientList[i].ingredientId = id;
+            newIngredients[i].id = id;
           } on DataNotFoundException catch (e) {
             // 1.4) If the new ingredients doesn't exist in the DB --> CREATE INGREDIENT
             ingredientsToCreate.add(newIngredients[i]);
@@ -434,7 +467,7 @@ class RecipeService {
       );
     }
 
-    // 2) Check for UPDATE OR DELETE operations
+    // 2) ------- CHECK FOR UPDATE/DELETE OPERATIONS -------
     for (int i = 0; i < oldRecipeIngredientList.length; i++) {
       // Get old ingredient info
       RecipeIngredient oldItem = oldRecipeIngredientList[i];
@@ -466,7 +499,7 @@ class RecipeService {
       }
     }
 
-    // 3) DELETE RecipeIngredient
+    // ------- PERFORME DELETE of RecipeIngredient -------
     for (RecipeIngredient item in recipeingredientToDelete) {
       try {
         DocumentReference itemRef = await _recipeIngredientDAO.getRef(item);
@@ -485,7 +518,7 @@ class RecipeService {
       }
     }
 
-    // 4) UPDATE RecipeIngredient
+    // ------- PERFORME UPDATE of RecipeIngredient -------
     for (RecipeIngredient item in recipeingredientToUpdate) {
       try {
         DocumentReference itemRef = await _recipeIngredientDAO.getRef(item);
@@ -500,11 +533,11 @@ class RecipeService {
       }
     }
 
-    // CREATE new Ingredient items
+    // ------- PERFORME CREATE of Ingredient -------
     for (Ingredient item in ingredientsToCreate) {
       DocumentReference newIngredientRef = _ingredientDAO.newRef();
 
-      // Update the corresponding RecipeIngredient
+      // Update the corresponding RecipeIngredient (in create list)
       for (RecipeIngredient recipeIngredient in recipeingredietToAdd) {
         if (recipeIngredient.ingredientId == item.id) {
           recipeIngredient.ingredientId = newIngredientRef.id;
@@ -512,15 +545,75 @@ class RecipeService {
           break;
         }
       }
+
       print("Saving ${item.name}, ID: ${item.id}");
       _ingredientDAO.saveWithBatch(newIngredientRef, item, batch);
     }
 
-    // CREATE new RecipeIngredient
+    // ------- PERFORME CREATE of RecipeIngredient -------
     for (RecipeIngredient item in recipeingredietToAdd) {
       DocumentReference newRecipeIngredientRef = _recipeIngredientDAO.newRef();
       _recipeIngredientDAO.saveWithBatch(newRecipeIngredientRef, item, batch);
     }
+
+    // ------- DEFINE UPDATED LISTS (to avoid other calls to the DB) -------
+    List<Ingredient> updatedIngredients = [];
+    List<RecipeIngredient> updatedRecipeIngredient = [];
+
+    // 1) Insert all new items (create operations)
+    for (RecipeIngredient newItem in recipeingredietToAdd) {
+      bool flag = false;
+      for (Ingredient createdIngredient in ingredientsToCreate) {
+        // Add new Ingredient and new RecipeIngredient
+        if (newItem.ingredientId == createdIngredient.id) {
+          flag = true;
+          updatedIngredients.add(createdIngredient);
+          updatedRecipeIngredient.add(newItem);
+
+          ingredientNames.remove(createdIngredient.name);
+          break;
+        }
+      }
+
+      if (!flag) {
+        // 2) Add existing Ingredient (but a NEW ENTRY in RecipeIngredient)
+        for (Ingredient existingIngredient in newIngredients) {
+          if (newItem.ingredientId == existingIngredient.id) {
+            updatedIngredients.add(existingIngredient);
+            updatedRecipeIngredient.add(newItem);
+
+            ingredientNames.remove(existingIngredient.name);
+            break;
+          }
+        }
+      }
+    }
+
+    // 3) Insert all updated items (update operations)
+    for (RecipeIngredient updatedItem in recipeingredientToUpdate) {
+      for (Ingredient updatedIngredient in newIngredients) {
+        if (updatedItem.ingredientId == updatedIngredient.id) {
+          updatedIngredients.add(updatedIngredient);
+          updatedRecipeIngredient.add(updatedItem);
+
+          ingredientNames.remove(updatedIngredient.name);
+          break;
+        }
+      }
+    }
+
+    // 4) Insert unchanged items
+    for (String item in ingredientNames) {
+      for (int i = 0; i < newIngredients.length; i++) {
+        if (item == newIngredients[i].name) {
+          updatedIngredients.add(newIngredients[i]);
+          updatedRecipeIngredient.add(newRecipeIngredientList[i]);
+          break;
+        }
+      }
+    }
+
+    return (updatedIngredients, updatedRecipeIngredient);
   }
 
   /// Add CRUD operations to the input batch to update, delete or create a RecipeStep based on oldStepList and newStepList.
@@ -661,7 +754,7 @@ class RecipeService {
   /// Throw [ValidationException] if the new recipe's duration doesn't match the total step duration, or if the new recipe's ingredient list contains duplicates.
   /// Throw [DatabaseOperationException] if an error occurs during the update of the input recipe.
   /// Throw [UnknownDatabaseException] if an unexpected error occurs during the update of the input recipe.
-  Future<void> updateRecipe(
+  Future<RecipeAggregate> updateRecipe(
     Recipe newRecipe,
     List<RecipeIngredient> oldRecipeIngredientList,
     List<RecipeIngredient> newRecipeIngredientList,
@@ -692,7 +785,10 @@ class RecipeService {
     _recipeDAO.updateWithBatch(recipeRef, newRecipe, batch);
 
     // --------------------- INGREDIENT ---------------------
-    await _updateRecipeIngredient(
+    final (
+      updatedIngredients,
+      updatedRecipeIngredient,
+    ) = await _updateRecipeIngredient(
       oldRecipeIngredientList,
       newRecipeIngredientList,
       oldIngredients,
@@ -710,6 +806,13 @@ class RecipeService {
 
     try {
       await batch.commit();
+
+      return RecipeAggregate(
+        recipe: newRecipe,
+        ingredients: updatedIngredients,
+        recipeIngredients: updatedRecipeIngredient,
+        steps: newStepList,
+      );
     } on FirebaseException catch (e, st) {
       throw DatabaseOperationException(
         "An error occurred during the transaction. Failed to update the input recipe.",

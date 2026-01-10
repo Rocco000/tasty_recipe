@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:tasty_recipe/Screens/HomeScreen.dart';
-import 'package:tasty_recipe/Services/RecipeCreationController.dart';
+import 'package:tasty_recipe/recipe/createRecipe/RecipeCreatedSuccessScreen.dart';
+import 'package:tasty_recipe/recipe/createRecipe/RecipeCreationController.dart';
 import 'package:tasty_recipe/Utils/InvalidFieldException.dart';
 import 'package:tasty_recipe/Widgets/DottedButtonWidget.dart';
 import 'package:tasty_recipe/Widgets/RecipeStepFormField.dart';
@@ -135,12 +137,8 @@ class _AddRecipeStepsScreenState extends State<AddRecipeStepsScreen> {
       final (result, msg) = await controller.createNewRecipe();
 
       if (result) {
-        // Get the root Navigator instance and move on HomeScreen
-        Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
-          HomeScreen.route,
-          (route) => false,
-          arguments: {"msg": msg},
-        );
+        // Get the root Navigator instance and move on success screen
+        context.push(RecipeCreatedSuccessScreen.route);
       } else {
         setState(() {
           if (!msg.contains("Something")) {
@@ -182,9 +180,10 @@ class _AddRecipeStepsScreenState extends State<AddRecipeStepsScreen> {
           title: const Text("Recipe App"),
           leading: IconButton(
             onPressed: () {
-              Navigator.pop(context);
+              // Navigate back and clear ingredient list and step list
               controller.clearIngredients();
               controller.clearSteps();
+              context.pop();
             },
             icon: Icon(Icons.arrow_back),
           ),
